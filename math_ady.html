@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Math Rush: Hextech Edition</title>
+<style>
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: radial-gradient(circle at center, #091428, #010a13);
+  color: #f0e6d2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* 롤 스타일 헥스테크 피버 모드 백그라운드 */
+body.fever-mode {
+  background: radial-gradient(circle at center, #1b0a2a, #0a0112);
+  animation: lolPulse 0.5s infinite alternate;
+}
+
+@keyframes lolPulse {
+  from { box-shadow: inset 0 0 60px rgba(200,170,110,0.1); }
+  to { box-shadow: inset 0 0 120px rgba(200,170,110,0.3); }
+}
+
+.game {
+  width: 400px;
+  padding: 24px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0a1428 0%, #091428 100%);
+  border: 2px solid #c8aa6d; /* 롤 골드 테두리 */
+  box-shadow: 0 0 30px rgba(10, 180, 220, 0.25), inset 0 0 15px rgba(200, 170, 109, 0.15);
+  position: relative;
+}
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  font-size: 15px;
+  border-bottom: 1px solid #1e2836;
+  padding-bottom: 10px;
+}
+
+.timer { color: #0ac8b9; font-weight: bold; } /* 마법공학 민트/블루 */
+.score { color: #c8aa6d; font-weight: bold; } /* 롤 골드 */
+.lives { color: #ff4e50; font-size: 16px; letter-spacing: 2px; }
+
+/* 롤 스타일 배너 */
+.fever-banner {
+  text-align: center;
+  background: linear-gradient(90deg, #785a28, #c8aa6d, #785a28);
+  color: #091428;
+  font-weight: 900;
+  font-size: 13px;
+  letter-spacing: 1px;
+  padding: 6px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  display: none;
+  border: 1px solid #f0e6d2;
+  text-transform: uppercase;
+}
+
+.question {
+  text-align: center;
+  font-size: 42px;
+  margin: 25px 0;
+  font-weight: 800;
+  color: #f0e6d2;
+  text-shadow: 0 0 10px rgba(10,200,185,0.4);
+}
+
+.choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+button {
+  padding: 16px;
+  font-size: 18px;
+  font-weight: bold;
+  border: 1px solid #785a28;
+  border-radius: 6px;
+  background: linear-gradient(to bottom, #1e2328, #0f1419);
+  color: #c8aa6d;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+button:hover {
+  background: linear-gradient(to bottom, #303840, #1e2328);
+  border-color: #c8aa6d;
+  color: #f0e6d2;
+  box-shadow: 0 0 10px rgba(200,170,109,0.3);
+}
+
+.correct { background: linear-gradient(to bottom, #005a36, #003820) !important; color: #0ac8b9 !important; border-color: #0ac8b9 !important; }
+.wrong { background: linear-gradient(to bottom, #5a0000, #380000) !important; color: #ff4e50 !important; border-color: #ff4e50 !important; }
+
+.bottom {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.combo { color: #f0e6d2; font-weight: bold; }
+.combo span { color: #c8aa6d; font-size: 18px; }
+#feedback { font-size: 22px; }
+
+.start-screen, .end-screen {
+  text-align: center;
+}
+
+.hidden { display: none; }
+
+.big-btn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 14px;
+  font-size: 15px;
+  font-weight: bold;
+  border-radius: 6px;
+  border: 1px solid #c8aa6d;
+  cursor: pointer;
+  transition: 0.2s;
+  text-transform: uppercase;
+}
+
+.btn-easy { background: #005a36; color: #0ac8b9; }
+.btn-normal { background: #1e2836; color: #c8aa6d; }
+.btn-hard { background: #5a0000; color: #ff4e50; }
+
+.big-btn:hover {
+  filter: brightness(1.2);
+  box-shadow: 0 0 15px rgba(200,170,109,0.4);
+}
+
+.record-box {
+  background: #0f1419;
+  border: 1px solid #1e2836;
+  padding: 12px;
+  border-radius: 6px;
+  margin: 15px 0;
+  font-size: 13px;
+  color: #a09b8c;
+}
+
+.record-box span {
+  color: #c8aa6d;
+  font-weight: bold;
+}
+
+h1 {
+  color: #c8aa6d;
+  font-size: 28px;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px rgba(200,170,109,0.3);
+}
+
+p {
+  color: #a09b8c;
+  font-size: 13px;
+}
+</style>
+</head>
+<body>
+
+<div class="game">
+
+<!-- 시작 및 난이도 선택 화면 (롤 로비 느낌) -->
+<div class="start-screen" id="startScreen">
+  <h1>⚔️ Math Rush</h1>
+  <p>소환사의 협곡: 연산의 방</p>
+  
+  <div class="record-box">
+    🏆 랭크 최고 점수<br>
+    브론즈(쉬움): <span id="record-easy">0</span>점 | 
+    골드(보통): <span id="record-normal">0</span>점 | 
+    챌린저(어려움): <span id="record-hard">0</span>점
+  </div>
+
+  <button class="big-btn btn-easy" onclick="startGame('easy')">🟢 브론즈 (덧셈/뺄셈, 60초)</button>
+  <button class="big-btn btn-normal" onclick="startGame('normal')">🟡 골드 (사칙연산, 60초)</button>
+  <button class="big-btn btn-hard" onclick="startGame('hard')">🔴 챌린저 (하드코어, 40초)</button>
+</div>
+
+<!-- 게임 플레이 화면 (인게임 HUD 느낌) -->
+<div class="play-screen hidden" id="playScreen">
+  <div class="top">
+    <div class="timer">⏳ <span id="time">60</span>s</div>
+    <div class="lives" id="lives">♥♥♥</div>
+    <div class="score">🪙 <span id="score">0</span></div>
+  </div>
+
+  <div class="fever-banner" id="feverBanner">⚡ 펜타킬 버프 발동! 점수 2배 획득 중! ⚡</div>
+
+  <div class="question" id="question">1 + 1</div>
+
+  <div class="choices" id="choices"></div>
+
+  <div class="bottom">
+    <div class="combo">연속 처치 <span>x<span id="combo">0</span></span></div>
+    <div id="feedback"></div>
+  </div>
+</div>
+
+<!-- 게임 종료 화면 (결과창) -->
+<div class="end-screen hidden" id="endScreen">
+  <h1>🏆 게임 결과</h1>
+  <p>최종 획득 골드: <span id="finalScore" style="color:#c8aa6d; font-size:26px; font-weight:bold;"></span></p>
+  <p id="newRecordAlert" style="color:#0ac8b9; font-weight:bold;"></p>
+  <button class="big-btn btn-normal" onclick="location.reload()">로비로 돌아가기</button>
+</div>
+
+</div>
+
+<script>
+let score = 0;
+let time = 60;
+let combo = 0;
+let lives = 3;
+let correctAnswer;
+let timer;
+let currentDifficulty = 'normal';
+let isFever = false;
+
+let highScores = JSON.parse(localStorage.getItem('lol_math_records')) || { easy: 0, normal: 0, hard: 0 };
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('record-easy').textContent = highScores.easy;
+  document.getElementById('record-normal').textContent = highScores.normal;
+  document.getElementById('record-hard').textContent = highScores.hard;
+});
+
+function startGame(difficulty) {
+  currentDifficulty = difficulty;
+  score = 0;
+  combo = 0;
+  lives = 3;
+  isFever = false;
+  
+  if (difficulty === 'easy' || difficulty === 'normal') {
+    time = 60;
+  } else {
+    time = 40;
+  }
+
+  document.getElementById('time').textContent = time;
+  document.getElementById('score').textContent = score;
+  document.getElementById('combo').textContent = combo;
+  updateLivesUI();
+
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('playScreen').classList.remove('hidden');
+  
+  nextQuestion();
+  
+  timer = setInterval(() => {
+    time--;
+    document.getElementById('time').textContent = time;
+    if (time <= 0) endGame();
+  }, 1000);
+}
+
+function updateLivesUI() {
+  let hearts = '';
+  for (let i = 0; i < lives; i++) hearts += '♥';
+  document.getElementById('lives').textContent = hearts;
+}
+
+function nextQuestion() {
+  let a, b, ops, op;
+
+  if (currentDifficulty === 'easy') {
+    a = Math.floor(Math.random() * 9) + 1;
+    b = Math.floor(Math.random() * 9) + 1;
+    ops = ['+', '-'];
+    op = ops[Math.floor(Math.random() * ops.length)];
+    if (op === '-' && a < b) { let temp = a; a = b; b = temp; }
+  } else if (currentDifficulty === 'normal') {
+    a = Math.floor(Math.random() * 10);
+    b = Math.floor(Math.random() * 10);
+    ops = ['+', '-', '*'];
+    op = ops[Math.floor(Math.random() * ops.length)];
+  } else {
+    a = Math.floor(Math.random() * 41) + 10;
+    b = Math.floor(Math.random() * 20) + 1;
+    ops = ['+', '-', '*'];
+    op = ops[Math.floor(Math.random() * ops.length)];
+    if (op === '*') {
+      a = Math.floor(Math.random() * 12) + 2;
+      b = Math.floor(Math.random() * 12) + 2;
+    }
+  }
+
+  if (op === '+') correctAnswer = a + b;
+  else if (op === '-') correctAnswer = a - b;
+  else if (op === '*') correctAnswer = a * b;
+
+  document.getElementById('question').textContent = `${a} ${op} ${b}`;
+
+  let answers = [correctAnswer];
+  while (answers.length < 6) {
+    let offset = Math.floor(Math.random() * 10) - 5;
+    if (offset === 0) offset = 1;
+    let wrong = correctAnswer + offset;
+    if (!answers.includes(wrong) && wrong >= 0) answers.push(wrong);
+  }
+
+  answers.sort(() => Math.random() - 0.5);
+
+  let choicesDiv = document.getElementById('choices');
+  choicesDiv.innerHTML = '';
+
+  answers.forEach(ans => {
+    let btn = document.createElement('button');
+    btn.textContent = ans;
+    btn.onclick = () => checkAnswer(btn, ans);
+    choicesDiv.appendChild(btn);
+  });
+}
+
+function checkAnswer(button, answer) {
+  let feedback = document.getElementById('feedback');
+
+  if (answer === correctAnswer) {
+    combo++;
+    let addScore = 10 + combo * 2;
+    if (combo >= 5) {
+      isFever = true;
+      addScore *= 2;
+      document.body.classList.add('fever-mode');
+      document.getElementById('feverBanner').style.display = 'block';
+    }
+
+    score += addScore;
+    button.classList.add('correct');
+    feedback.textContent = '⚔️';
+  } else {
+    combo = 0;
+    lives--;
+    isFever = false;
+    document.body.classList.remove('fever-mode');
+    document.getElementById('feverBanner').style.display = 'none';
+
+    button.classList.add('wrong');
+    feedback.textContent = '❌';
+    updateLivesUI();
+
+    if (lives <= 0) {
+      setTimeout(() => endGame(), 300);
+      return;
+    }
+  }
+
+  document.getElementById('score').textContent = score;
+  document.getElementById('combo').textContent = combo;
+
+  setTimeout(() => {
+    nextQuestion();
+    feedback.textContent = '';
+  }, 250);
+}
+
+function endGame() {
+  clearInterval(timer);
+  document.body.classList.remove('fever-mode');
+  document.getElementById('playScreen').classList.add('hidden');
+  document.getElementById('endScreen').classList.remove('hidden');
+  document.getElementById('finalScore').textContent = score;
+
+  let alertText = "";
+  if (score > highScores[currentDifficulty]) {
+    highScores[currentDifficulty] = score;
+    localStorage.setItem('lol_math_records', JSON.stringify(highScores));
+    alertText = "🏆 새로운 최고 랭크 경신!";
+  } else {
+    alertText = `현재 랭크 최고 기록: ${highScores[currentDifficulty]}점`;
+  }
+  document.getElementById('newRecordAlert').textContent = alertText;
+}
+</script>
+
+</body>
+</html>

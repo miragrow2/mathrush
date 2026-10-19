@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Math Rush - 치이카와 아케이드</title>
+<link href="https://fonts.googleapis.com/css2?family=DungGeunMo&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+* {
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    margin: 0;
+    font-family: 'DungGeunMo', monospace;
+    background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 99%, #fad0c4 100%);
+    color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+    transition: background 0.1s ease;
+}
+
+body.flash {
+    background: linear-gradient(135deg, #ffeaa7 0%, #55efc4 100%);
+}
+
+.game-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+    position: relative;
+}
+
+/* 양옆에 등장할 치이카와 캐릭터 스타일 */
+.chiikawa-char {
+    font-size: 64px;
+    opacity: 0;
+    transform: translateY(20px) scale(0.5);
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    pointer-events: none;
+    filter: drop-shadow(0 5px 10px rgba(0,0,0,0.15));
+}
+
+.chiikawa-char.show {
+    opacity: 1;
+    transform: translateY(0) scale(1.2);
+}
+
+.game {
+    width: 390px;
+    padding: 24px;
+    border-radius: 24px;
+    background: #ffffff;
+    border: 5px solid #ff6b81;
+    box-shadow: 0 15px 35px rgba(255, 107, 129, 0.3), 0 5px 15px rgba(0,0,0,0.1);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+h1 {
+    font-family: 'Press Start 2P', 'DungGeunMo', monospace;
+    font-size: 24px;
+    color: #ff4757;
+    margin-bottom: 8px;
+    text-shadow: 2px 2px #ffeaa7;
+}
+
+p {
+    font-size: 17px;
+    color: #57606f;
+    margin-bottom: 20px;
+    font-weight: bold;
+}
+
+.top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    background: #f1f2f6;
+    padding: 12px 15px;
+    border-radius: 12px;
+    border: 2px solid #dfe4ea;
+}
+
+/* 타이머 크게 키운 스타일 */
+.timer {
+    color: #2ed573;
+    font-weight: bold;
+    font-size: 26px;
+    font-family: 'Press Start 2P', monospace;
+}
+
+.score {
+    color: #ffa502;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.pause-btn-top {
+    background: #ff4757;
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    font-size: 13px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'DungGeunMo', monospace;
+    font-weight: bold;
+    box-shadow: 0 3px 0 #c23616;
+}
+
+.pause-btn-top:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #c23616;
+}
+
+/* 전체 화면 대형 콤보 오버레이 스타일 */
+.fullscreen-combo-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0;
+    transform: scale(0.3);
+    transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.15s ease;
+}
+
+.fullscreen-combo-overlay.show {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.fullscreen-combo-text {
+    font-family: 'PressStart 2P', 'DungGeunMo', monospace;
+    font-size: 42px;
+    color: #ff4757;
+    text-shadow: 4px 4px #ffeaa7, -2px -2px #ffffff, 0 0 20px rgba(255, 71, 87, 0.6);
+    text-align: center;
+    background: rgba(255, 255, 255, 0.85);
+    padding: 20px 30px;
+    border-radius: 20px;
+    border: 4px dashed #ff4757;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.question {
+    font-size: 40px;
+    margin: 10px 0 20px 0;
+    font-weight: bold;
+    color: #2f3542;
+    background: #fff2f2;
+    padding: 18px;
+    border-radius: 16px;
+    border: 3px dashed #ff6b81;
+}
+
+.choices {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+button.choice-btn {
+    padding: 16px;
+    font-size: 20px;
+    font-family: 'DungGeunMo', monospace;
+    border: 3px solid #70a1ff;
+    border-radius: 14px;
+    background: #e8f4f8;
+    color: #2f3542;
+    cursor: pointer;
+    transition: 0.1s;
+    box-shadow: 0 5px 0 #70a1ff;
+    font-weight: bold;
+}
+
+button.choice-btn:hover {
+    background: #70a1ff;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 7px 0 #5352ed;
+}
+
+button.choice-btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 #5352ed;
+}
+
+.correct {
+    background: #2ed573 !important;
+    border-color: #26af5f !important;
+    color: white !important;
+    box-shadow: 0 2px 0 #1e824c !important;
+}
+
+.wrong {
+    background: #ff4757 !important;
+    border-color: #ff6b81 !important;
+    color: white !important;
+    box-shadow: 0 2px 0 #c23616 !important;
+}
+
+.bottom {
+    margin-top: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 16px;
+}
+
+.combo {
+    color: #ff4757;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.start-screen, .end-screen, .pause-screen {
+    text-align: center;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.big-btn {
+    width: 100%;
+    margin-top: 15px;
+    padding: 16px;
+    font-size: 20px;
+    font-family: 'DungGeunMo', monospace;
+    border-radius: 14px;
+    background: #ff4757;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    box-shadow: 0 5px 0 #c23616;
+    transition: 0.1s;
+}
+
+.big-btn:hover {
+    background: #ff6b81;
+    transform: translateY(-2px);
+    box-shadow: 0 7px 0 #c23616;
+}
+
+.big-btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 #c23616;
+}
+
+.difficulty-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.diff-btn {
+    padding: 12px;
+    font-size: 16px;
+    font-family: 'DungGeunMo', monospace;
+    border-radius: 10px;
+    background: #f1f2f6;
+    color: #57606f;
+    border: 2px solid #dfe4ea;
+    cursor: pointer;
+    transition: 0.2s;
+    font-weight: bold;
+}
+
+.diff-btn.selected {
+    background: #ffa502;
+    color: white;
+    border-color: #ff9f43;
+    box-shadow: 0 4px 0 #e58e26;
+}
+
+.stats-box {
+    background: #f1f2f6;
+    padding: 14px;
+    border-radius: 12px;
+    border: 2px solid #dfe4ea;
+    margin: 15px 0;
+    font-size: 16px;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: #2f3542;
+}
+</style>
+</head>
+<body>
+
+<div class="fullscreen-combo-overlay" id="fsComboOverlay">
+    <div class="fullscreen-combo-text" id="fsComboText">🔥 2 COMBO! 🔥</div>
+</div>
+
+<div class="game-wrapper">
+    <!-- 왼쪽 치이카와 캐릭터 -->
+    <div class="chiikawa-char" id="chiikawaLeft">🥺</div>
+
+    <div class="game">
+        <!-- 시작 화면 -->
+        <div class="start-screen" id="startScreen">
+            <h1>MATH RUSH</h1>
+            <p>신나게 풀고 콤보를 터뜨려라!</p>
+            
+            <div style="text-align: left; font-size: 15px; color: #57606f; margin-bottom: 8px; font-weight:bold;">난이도 선택</div>
+            <div class="difficulty-group">
+                <button class="diff-btn selected" id="diffEasy" data-level="easy">🟢 쉬움 (0 ~ 10)</button>
+                <button class="diff-btn" id="diffNormal" data-level="normal">🟡 보통 (0 ~ 20)</button>
+                <button class="diff-btn" id="diffHard" data-level="hard">🔴 어려움 (0 ~ 50)</button>
+            </div>
+
+            <button class="big-btn" id="startBtn">게임 시작!</button>
+        </div>
+
+        <!-- 플레이 화면 -->
+        <div class="play-screen hidden" id="playScreen">
+            <div class="top">
+                <div class="timer">⏱ <span id="time">60</span></div>
+                <div class="score">🏆 <span id="score">0</span></div>
+                <button class="pause-btn-top" id="pauseBtn">일시정지</button>
+            </div>
+
+            <div class="question" id="question">1 + 1</div>
+
+            <div class="choices" id="choices"></div>
+
+            <div class="bottom">
+                <div class="combo">🔥 COMBO x<span id="combo">0</span></div>
+                <div id="feedback" style="font-weight: bold;"></div>
+            </div>
+        </div>
+
+        <!-- 일시정지 화면 -->
+        <div class="pause-screen hidden" id="pauseScreen">
+            <h1>⏸ 일시정지</h1>
+            <p>잠시 쉬어가는 중~</p>
+            <button class="big-btn" id="resumeBtn">계속하기</button>
+            <button class="big-btn" id="homeBtn" style="background:#70a1ff; box-shadow:0 5px 0 #5352ed;">처음으로</button>
+        </div>
+
+        <!-- 결과 화면 -->
+        <div class="end-screen hidden" id="endScreen">
+            <h1>✨ 게임 종료! ✨</h1>
+            <div class="stats-box">
+                <div>🏆 최종 점수: <span id="finalScore" style="color:#ffa502; font-weight:bold;">0</span>점</div>
+                <div>🎯 맞춘 문제: <span id="correctCount" style="color:#2ed573; font-weight:bold;">0</span>개</div>
+                <div>❌ 틀린 문제: <span id="wrongCount" style="color:#ff4757; font-weight:bold;">0</span>개</div>
+                <div>📊 정확도: <span id="accuracy" style="color:#70a1ff; font-weight:bold;">0%</span></div>
+            </div>
+            <button class="big-btn" id="restartBtn">다시 하기</button>
+        </div>
+    </div>
+
+    <!-- 오른쪽 하치와루 캐릭터 -->
+    <div class="chiikawa-char" id="chiikawaRight">🐱</div>
+</div>
+
+<script>
+let score = 0;
+let time = 60;
+let combo = 0;
+let correctAnswer;
+let timer;
+let difficulty = 'easy';
+
+let totalAttempts = 0;
+let correctAttempts = 0;
+let isPaused = false;
+
+document.querySelectorAll('.diff-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        difficulty = btn.getAttribute('data-level');
+    });
+});
+
+document.getElementById('startBtn').addEventListener('click', startGame);
+document.getElementById('pauseBtn').addEventListener('click', pauseGame);
+document.getElementById('resumeBtn').addEventListener('click', resumeGame);
+document.getElementById('homeBtn').addEventListener('click', () => location.reload());
+document.getElementById('restartBtn').addEventListener('click', () => location.reload());
+
+function startGame() {
+    document.getElementById('startScreen').classList.add('hidden');
+    document.getElementById('playScreen').classList.remove('hidden');
+    score = 0;
+    time = 60;
+    combo = 0;
+    totalAttempts = 0;
+    correctAttempts = 0;
+    isPaused = false;
+    
+    if (timer) clearInterval(timer);
+    
+    nextQuestion();
+    timer = setInterval(() => {
+        if (!isPaused) {
+            time--;
+            document.getElementById('time').textContent = time;
+            if (time <= 0) endGame();
+        }
+    }, 1000);
+}
+
+function pauseGame() {
+    isPaused = true;
+    document.getElementById('playScreen').classList.add('hidden');
+    document.getElementById('pauseScreen').classList.remove('hidden');
+}
+
+function resumeGame() {
+    isPaused = false;
+    document.getElementById('pauseScreen').classList.add('hidden');
+    document.getElementById('playScreen').classList.remove('hidden');
+}
+
+function nextQuestion() {
+    let maxNum = 10;
+    if (difficulty === 'normal') maxNum = 20;
+    if (difficulty === 'hard') maxNum = 50;
+
+    let a = Math.floor(Math.random() * (maxNum + 1));
+    let b = Math.floor(Math.random() * (maxNum + 1));
+    let ops = ['+', '-', '*'];
+    let op = ops[Math.floor(Math.random() * ops.length)];
+
+    if (op === '-') {
+        if (a < b) { let temp = a; a = b; b = temp; }
+    }
+    if (op === '*' && difficulty === 'hard') {
+        a = Math.floor(Math.random() * 12) + 1;
+        b = Math.floor(Math.random() * 12) + 1;
+    }
+
+    if (op === '+') correctAnswer = a + b;
+    if (op === '-') correctAnswer = a - b;
+    if (op === '*') correctAnswer = a * b;
+
+    document.getElementById('question').textContent = `${a} ${op} ${b}`;
+
+    let answers = [correctAnswer];
+    while (answers.length < 4) {
+        let offset = Math.floor(Math.random() * 10) - 5;
+        let wrong = correctAnswer + (offset === 0 ? 1 : offset);
+        if (wrong >= 0 && !answers.includes(wrong)) {
+            answers.push(wrong);
+        }
+    }
+
+    answers.sort(() => Math.random() - 0.5);
+
+    let choicesDiv = document.getElementById('choices');
+    choicesDiv.innerHTML = '';
+
+    answers.forEach(ans => {
+        let btn = document.createElement('button');
+        btn.className = 'choice-btn';
+        btn.textContent = ans;
+        btn.onclick = () => checkAnswer(btn, ans);
+        choicesDiv.appendChild(btn);
+    });
+}
+
+function showFullscreenCombo(comboCount) {
+    let overlay = document.getElementById('fsComboOverlay');
+    let textElem = document.getElementById('fsComboText');
+    textElem.textContent = `🔥 ${comboCount} COMBO! 🔥`;
+    
+    overlay.classList.add('show');
+    setTimeout(() => {
+        overlay.classList.remove('show');
+    }, 300);
+}
+
+function triggerFlash() {
+    document.body.classList.add('flash');
+    setTimeout(() => {
+        document.body.classList.remove('flash');
+    }, 150);
+}
+
+// 정답 맞힐 때 양옆에 치이카와 캐릭터를 띄우는 함수
+function showChiikawaCharacters() {
+    let leftChar = document.getElementById('chiikawaLeft');
+    let rightChar = document.getElementById('chiikawaRight');
+
+    leftChar.classList.add('show');
+    rightChar.classList.add('show');
+
+    setTimeout(() => {
+        leftChar.classList.remove('show');
+        rightChar.classList.remove('show');
+    }, 300);
+}
+
+function checkAnswer(button, answer) {
+    if (isPaused) return;
+
+    let feedback = document.getElementById('feedback');
+    totalAttempts++;
+
+    let allBtns = document.querySelectorAll('.choice-btn');
+    allBtns.forEach(b => b.style.pointerEvents = 'none');
+
+    if (answer === correctAnswer) {
+        correctAttempts++;
+        score += 10 + combo * 2;
+        combo++;
+        button.classList.add('correct');
+        feedback.textContent = '✨ 정답!';
+        feedback.style.color = '#2ed573';
+
+        triggerFlash();
+        showChiikawaCharacters(); // 치이카와 등장!
+
+        if (combo >= 2) {
+            showFullscreenCombo(combo);
+        }
+    } else {
+        combo = 0;
+        button.classList.add('wrong');
+        
+        allBtns.forEach(b => {
+            if (parseInt(b.textContent) === correctAnswer) {
+                b.classList.add('correct');
+            }
+        });
+
+        feedback.textContent = '💦 앗!';
+        feedback.style.color = '#ff4757';
+    }
+
+    document.getElementById('score').textContent = score;
+    document.getElementById('combo').textContent = combo;
+
+    setTimeout(() => {
+        nextQuestion();
+        feedback.textContent = '';
+    }, 350);
+}
+
+function endGame() {
+    clearInterval(timer);
+    document.getElementById('playScreen').classList.add('hidden');
+    document.getElementById('endScreen').classList.remove('hidden');
+    
+    document.getElementById('finalScore').textContent = score;
+    document.getElementById('correctCount').textContent = correctAttempts;
+    document.getElementById('wrongCount').textContent = (totalAttempts - correctAttempts);
+
+    let accuracy = totalAttempts > 0 ? Math.round((correctAttempts / totalAttempts) * 100) : 0;
+    document.getElementById('accuracy').textContent = accuracy + '%';
+}
+</script>
+
+</body>
+</html>

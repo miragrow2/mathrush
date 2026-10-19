@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Math Rush - Frutiger Aero Edition</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  /* Frutiger Aero 풀 스크린 배경: 푸른 하늘 + 태양광 스팟 + 풀밭 */
+  body {
+    background: 
+      linear-gradient(to bottom, 
+        rgba(0, 162, 255, 0.85) 0%, 
+        rgba(80, 205, 255, 0.7) 45%, 
+        rgba(168, 240, 255, 0.6) 70%, 
+        rgba(100, 220, 100, 0.8) 88%, 
+        rgba(34, 139, 34, 0.95) 100%
+      ),
+      radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0) 50%);
+    background-size: cover;
+    background-attachment: fixed;
+    font-family: 'Segoe UI', 'Frutiger', 'Lucida Grande', 'Trebuchet MS', sans-serif;
+    color: #1e293b;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* 떠다니는 물방울 애니메이션 배경 */
+  .bubble {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.1) 60%, rgba(180, 230, 255, 0.6) 90%, rgba(255, 255, 255, 0.9) 100%);
+    box-shadow: inset -3px -3px 8px rgba(0, 100, 200, 0.3), 0 8px 15px rgba(0, 50, 100, 0.15);
+    backdrop-filter: blur(2px);
+    animation: floatUp 12s infinite linear;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  @keyframes floatUp {
+    0% { transform: translateY(105vh) scale(0.8) rotate(0deg); opacity: 0; }
+    10% { opacity: 0.85; }
+    90% { opacity: 0.85; }
+    100% { transform: translateY(-15vh) scale(1.1) rotate(360deg); opacity: 0; }
+  }
+
+  /* Aero Glass 프레임 (유리 질감 + 하이글로스 테두리) */
+  .aero-frame {
+    position: relative;
+    z-index: 10;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.65) 0%, rgba(215, 240, 255, 0.45) 50%, rgba(180, 220, 255, 0.55) 100%);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-bottom: 2px solid rgba(0, 120, 215, 0.4);
+    box-shadow: 
+      0 20px 50px rgba(0, 60, 120, 0.35),
+      inset 0 2px 4px rgba(255, 255, 255, 0.9),
+      inset 0 -2px 6px rgba(0, 150, 255, 0.2);
+    border-radius: 20px;
+    width: 440px;
+    max-width: 95vw;
+    padding: 18px;
+  }
+
+  /* Aero 창 타이틀바 (Windows Vista / 7 스타일) */
+  .aero-titlebar {
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.8) 0%, rgba(200, 235, 255, 0.5) 50%, rgba(120, 190, 240, 0.6) 51%, rgba(160, 220, 255, 0.7) 100%);
+    border-radius: 12px;
+    padding: 6px 14px;
+    font-weight: 700;
+    font-size: 13px;
+    color: #034875;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.9);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 2px 5px rgba(0, 80, 160, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.9);
+    margin-bottom: 16px;
+  }
+
+  /* Aero 창 컨트롤 버튼들 (최소화, 최대화, 닫기) */
+  .aero-win-btn {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: inset 0 1px 2px rgba(255,255,255,0.8), 0 1px 3px rgba(0,0,0,0.2);
+    border: 1px solid rgba(0,0,0,0.15);
+  }
+
+  /* LCD 에어로 디스플레이 */
+  .aero-lcd {
+    background: linear-gradient(180deg, rgba(235, 248, 255, 0.9) 0%, rgba(200, 235, 255, 0.85) 100%);
+    border: 1px solid rgba(0, 150, 220, 0.3);
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: inset 0 2px 8px rgba(0, 80, 160, 0.15), 0 4px 10px rgba(255,255,255,0.5);
+  }
+
+  /* 오답 시 좌우 흔들림 */
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-6px); }
+    40%, 80% { transform: translateX(6px); }
+  }
+  .animate-shake {
+    animation: shake 0.3s ease-in-out;
+  }
+
+  /* 정답 시 반짝이는 펄스 */
+  @keyframes correct-pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.06); }
+    100% { transform: scale(1); }
+  }
+  .animate-correct {
+    animation: correct-pulse 0.35s ease-in-out;
+    background: linear-gradient(to bottom, #86efac 0%, #22c55e 50%, #15803d 100%) !important;
+    color: white !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4) !important;
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.8), inset 0 1px 3px rgba(255,255,255,0.9) !important;
+  }
+
+  /* 오답 버튼 애니메이션 */
+  .animate-wrong {
+    background: linear-gradient(to bottom, #fca5a5 0%, #ef4444 50%, #b91c1c 100%) !important;
+    color: white !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4) !important;
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.8), inset 0 1px 3px rgba(255,255,255,0.9) !important;
+  }
+
+  /* 에어로 3D 젤 버튼 (Glossy Aero Gel Buttons) */
+  .aero-btn {
+    background: linear-gradient(to bottom, 
+      rgba(255, 255, 255, 0.95) 0%, 
+      rgba(230, 245, 255, 0.85) 48%, 
+      rgba(170, 220, 255, 0.9) 50%, 
+      rgba(200, 238, 255, 0.95) 100%
+    );
+    border: 1px solid rgba(0, 140, 220, 0.4);
+    border-radius: 10px;
+    color: #0284c7;
+    font-weight: 700;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
+    box-shadow: 
+      0 3px 6px rgba(0, 90, 180, 0.2), 
+      inset 0 1px 2px rgba(255, 255, 255, 0.95),
+      inset 0 -1px 3px rgba(0, 150, 255, 0.2);
+    transition: all 0.15s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .aero-btn:hover {
+    background: linear-gradient(to bottom, 
+      rgba(255, 255, 255, 1) 0%, 
+      rgba(215, 242, 255, 0.95) 48%, 
+      rgba(135, 210, 255, 0.95) 50%, 
+      rgba(180, 230, 255, 1) 100%
+    );
+    color: #0369a1;
+    box-shadow: 
+      0 5px 12px rgba(0, 120, 230, 0.35), 
+      inset 0 1px 3px rgba(255, 255, 255, 1),
+      0 0 12px rgba(56, 189, 248, 0.5);
+    transform: translateY(-1px);
+  }
+
+  .aero-btn:active {
+    transform: translateY(1px);
+    box-shadow: inset 0 2px 4px rgba(0, 80, 160, 0.3);
+  }
+
+  /* 메인 액션 젤 버튼 (블루 젤) */
+  .aero-btn-action {
+    background: linear-gradient(to bottom, 
+      #7dd3fc 0%, 
+      #38bdf8 48%, 
+      #0284c7 50%, 
+      #0369a1 100%
+    );
+    color: white;
+    text-shadow: 0 -1px 1px rgba(0, 50, 100, 0.5);
+    border: 1px solid #0284c7;
+    box-shadow: 
+      0 4px 10px rgba(2, 132, 199, 0.4), 
+      inset 0 1px 2px rgba(255, 255, 255, 0.8);
+  }
+
+  .aero-btn-action:hover {
+    background: linear-gradient(to bottom, 
+      #bae6fd 0%, 
+      #55c8f8 48%, 
+      #0369a1 50%, 
+      #075985 100%
+    );
+    box-shadow: 0 6px 15px rgba(2, 132, 199, 0.5), 0 0 15px rgba(56, 189, 248, 0.6);
+  }
+
+  /* 난이도 버튼 선택 상태 */
+  .diff-btn.selected {
+    background: linear-gradient(to bottom, #a5f3fc 0%, #22d3ee 48%, #0891b2 50%, #0e7490 100%) !important;
+    color: white !important;
+    text-shadow: 0 -1px 1px rgba(0, 50, 80, 0.6) !important;
+    border-color: #0891b2 !important;
+    box-shadow: 0 0 12px rgba(6, 182, 212, 0.6), inset 0 1px 2px rgba(255, 255, 255, 0.8) !important;
+  }
+</style>
+</head>
+<body>
+
+<!-- 프루티거 에어로 배경 물방울 효과 -->
+<div id="bubblesContainer"></div>
+
+<div class="aero-frame">
+  <!-- Aero 스타일 창 타이틀바 -->
+  <div class="aero-titlebar">
+    <div class="flex items-center gap-2">
+      <span class="text-base">🫧</span>
+      <span>Frutiger Aero Math Rush</span>
+    </div>
+    <div class="flex gap-1.5 items-center">
+      <span class="aero-win-btn bg-amber-300"></span>
+      <span class="aero-win-btn bg-emerald-400"></span>
+      <span class="aero-win-btn bg-rose-400"></span>
+    </div>
+  </div>
+
+  <!-- 시작 화면 -->
+  <div id="startScreen" class="aero-lcd text-center py-6">
+    <div class="inline-block p-3 rounded-full bg-cyan-100/80 mb-2 border border-white shadow-inner">
+      <span class="text-3xl">🐬</span>
+    </div>
+    <h1 class="text-2xl font-black text-sky-700 mb-1 tracking-tight text-shadow">MATH RUSH</h1>
+    <p class="text-xs text-sky-600 font-semibold mb-6">청량한 에어로 스피드 연산 퀴즈</p>
+    
+    <div class="text-left mb-5 px-1">
+      <label class="text-xs font-bold text-sky-800 block mb-2">난이도 선택 (숫자 범위):</label>
+      <div class="grid grid-cols-3 gap-2">
+        <button onclick="setDifficulty('easy')" id="btnEasy" class="diff-btn aero-btn py-2 text-xs">쉬움<br>(0~10)</button>
+        <button onclick="setDifficulty('normal')" id="btnNormal" class="diff-btn aero-btn py-2 text-xs selected">보통<br>(0~20)</button>
+        <button onclick="setDifficulty('hard')" id="btnHard" class="diff-btn aero-btn py-2 text-xs">어려움<br>(0~50)</button>
+      </div>
+    </div>
+
+    <button onclick="startGame()" class="w-full mt-2 py-3.5 aero-btn aero-btn-action font-extrabold text-base rounded-xl transition">
+      START GAME ▶
+    </button>
+  </div>
+
+  <!-- 플레이 화면 -->
+  <div id="playScreen" class="aero-lcd hidden">
+    <!-- 상단 정보 및 타임바 -->
+    <div class="flex justify-between items-center mb-2 text-xs font-bold text-sky-900">
+      <div class="flex items-center gap-1">⏱ 남은시간: <span id="time" class="text-sky-600 font-extrabold text-base">60</span>초</div>
+      <div class="flex items-center gap-1">🏆 점수: <span id="score" class="text-amber-600 font-extrabold text-base">0</span>점</div>
+    </div>
+
+    <!-- 타임바 (글로시 에어로 프로그레스 바) -->
+    <div class="w-full bg-sky-200/70 h-3 rounded-full overflow-hidden mb-4 border border-white p-0.5 shadow-inner">
+      <div id="timeBar" class="bg-gradient-to-r from-teal-300 via-cyan-400 to-sky-500 h-full w-full rounded-full transition-all duration-300 shadow"></div>
+    </div>
+
+    <div class="flex justify-between items-center text-xs font-semibold text-sky-800 mb-3 px-1">
+      <div>🔥 연속 콤보: <span id="combo" class="text-pink-600 font-bold">0</span></div>
+      <div>맞춘 문제: <span id="correctCount" class="text-emerald-600 font-bold">0</span>개 (<span id="bonusStatus" class="text-sky-600">보너스 +5초</span>)</div>
+    </div>
+
+    <!-- 문제 표시 영역 -->
+    <div id="questionBox" class="bg-white/80 border border-sky-200/80 rounded-xl py-6 mb-4 text-center shadow-md relative overflow-hidden">
+      <div class="absolute -top-10 -right-10 w-24 h-24 bg-sky-300/30 rounded-full blur-xl pointer-events-none"></div>
+      <div id="question" class="text-4xl font-black text-sky-900 tracking-wide">1 + 1</div>
+    </div>
+
+    <!-- 선택지 (10개 보기) -->
+    <div id="choices" class="grid grid-cols-5 gap-2 mb-2"></div>
+
+    <!-- 피드백 메시지 -->
+    <div id="feedback" class="h-6 text-center text-sm font-extrabold mt-2"></div>
+  </div>
+
+  <!-- 결과 화면 -->
+  <div id="endScreen" class="aero-lcd hidden text-center py-6">
+    <div class="inline-block p-3 rounded-full bg-amber-100/90 mb-2 border border-white shadow">
+      <span class="text-3xl">🎉</span>
+    </div>
+    <h2 class="text-xl font-black text-sky-900 mb-4">연산 학습 성취도 보고서</h2>
+    
+    <div class="bg-white/80 p-4 rounded-xl border border-sky-200 text-left text-xs space-y-2.5 mb-6 shadow-sm">
+      <div class="flex justify-between text-slate-700"><span>최종 획득 점수:</span> <span id="finalScore" class="font-bold text-sky-600 text-sm">0점</span></div>
+      <div class="flex justify-between text-slate-700"><span>총 도전 문제 수:</span> <span id="totalSolved" class="font-bold text-slate-800">0문제</span></div>
+      <div class="flex justify-between text-slate-700"><span>정답 맞춘 수:</span> <span id="finalCorrect" class="font-bold text-emerald-600">0개</span></div>
+      <div class="flex justify-between text-slate-700"><span>오답 수:</span> <span id="finalWrong" class="font-bold text-rose-500">0개</span></div>
+      <div class="flex justify-between border-t border-sky-100 pt-2.5 text-sm font-extrabold text-sky-900"><span>최종 정확도:</span> <span id="accuracy" class="text-amber-500 text-base">0%</span></div>
+    </div>
+
+    <button onclick="location.reload()" class="w-full py-3.5 aero-btn aero-btn-action font-extrabold text-sm rounded-xl transition">
+      다시 도전하기 ↺
+    </button>
+  </div>
+
+  <!-- 하단 캡션 -->
+  <div class="mt-3 text-center text-[11px] text-sky-900/70 font-medium">
+    Windows Aero Glass Experience • Math Speed Challenge
+  </div>
+</div>
+
+<script>
+  // 배경 물방울 생성
+  const bubbleContainer = document.getElementById('bubblesContainer');
+  for (let i = 0; i < 14; i++) {
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    const size = Math.random() * 40 + 15;
+    bubble.style.width = `${size}px`;
+    bubble.style.height = `${size}px`;
+    bubble.style.left = `${Math.random() * 95}%`;
+    bubble.style.animationDelay = `${Math.random() * 10}s`;
+    bubble.style.animationDuration = `${Math.random() * 6 + 8}s`;
+    bubbleContainer.appendChild(bubble);
+  }
+
+  let difficulty = 'normal';
+  let score = 0;
+  let time = 60;
+  let maxTime = 60;
+  let combo = 0;
+  let correctAnswer = 0;
+  let timer = null;
+
+  let totalSolved = 0;
+  let correctCountVal = 0;
+  let wrongCountVal = 0;
+
+  function setDifficulty(level) {
+    difficulty = level;
+    document.querySelectorAll('.diff-btn').forEach(btn => btn.classList.remove('selected'));
+    if (level === 'easy') document.getElementById('btnEasy').classList.add('selected');
+    if (level === 'normal') document.getElementById('btnNormal').classList.add('selected');
+    if (level === 'hard') document.getElementById('btnHard').classList.add('selected');
+  }
+
+  function getMaxRange() {
+    if (difficulty === 'easy') return 10;
+    if (difficulty === 'normal') return 20;
+    if (difficulty === 'hard') return 50;
+    return 20;
+  }
+
+  function startGame() {
+    score = 0;
+    time = 60;
+    maxTime = 60;
+    combo = 0;
+    totalSolved = 0;
+    correctCountVal = 0;
+    wrongCountVal = 0;
+
+    document.getElementById('startScreen').classList.add('hidden');
+    document.getElementById('endScreen').classList.add('hidden');
+    document.getElementById('playScreen').classList.remove('hidden');
+
+    updateUI();
+    nextQuestion();
+
+    if (timer) clearInterval(timer);
+    timer = setInterval(() => {
+      time--;
+      if (time < 0) time = 0;
+      updateTimeBar();
+      if (time <= 0) {
+        endGame();
+      }
+    }, 1000);
+  }
+
+  function updateTimeBar() {
+    document.getElementById('time').textContent = time;
+    let pct = Math.max(0, (time / maxTime) * 100);
+    document.getElementById('timeBar').style.width = pct + '%';
+    
+    if (time <= 10) {
+      document.getElementById('timeBar').className = "bg-gradient-to-r from-rose-400 to-red-500 h-full rounded-full transition-all duration-300 shadow";
+    } else {
+      document.getElementById('timeBar').className = "bg-gradient-to-r from-teal-300 via-cyan-400 to-sky-500 h-full rounded-full transition-all duration-300 shadow";
+    }
+  }
+
+  function updateUI() {
+    document.getElementById('score').textContent = score;
+    document.getElementById('combo').textContent = combo;
+    document.getElementById('correctCount').textContent = correctCountVal;
+    
+    let bonusStatusEl = document.getElementById('bonusStatus');
+    if (correctCountVal >= 20) {
+      bonusStatusEl.textContent = "보너스 해제(20개 초과)";
+      bonusStatusEl.className = "text-rose-500 font-bold";
+    } else {
+      bonusStatusEl.textContent = "보너스 +5초";
+      bonusStatusEl.className = "text-sky-600";
+    }
+  }
+
+  function nextQuestion() {
+    let range = getMaxRange();
+    let a = Math.floor(Math.random() * range);
+    let b = Math.floor(Math.random() * range);
+    let ops = ['+', '-', '*'];
+    let op = ops[Math.floor(Math.random() * ops.length)];
+
+    if (op === '-' && a < b) {
+      let temp = a; a = b; b = temp;
+    }
+
+    if (op === '+') correctAnswer = a + b;
+    if (op === '-') correctAnswer = a - b;
+    if (op === '*') correctAnswer = a * b;
+
+    document.getElementById('question').textContent = `${a} ${op} ${b}`;
+
+    let answers = [correctAnswer];
+    while (answers.length < 10) {
+      let offset = Math.floor(Math.random() * 10) - 5;
+      let wrong = correctAnswer + offset;
+      if (wrong >= 0 && !answers.includes(wrong)) {
+        answers.push(wrong);
+      }
+    }
+
+    answers.sort(() => Math.random() - 0.5);
+
+    let choicesDiv = document.getElementById('choices');
+    choicesDiv.innerHTML = '';
+
+    answers.forEach(ans => {
+      let btn = document.createElement('button');
+      btn.textContent = ans;
+      btn.className = "aero-btn py-3 text-sm rounded-lg font-bold";
+      btn.onclick = () => checkAnswer(btn, ans);
+      choicesDiv.appendChild(btn);
+    });
+  }
+
+  function checkAnswer(button, answer) {
+    totalSolved++;
+    let feedback = document.getElementById('feedback');
+    let qBox = document.getElementById('questionBox');
+
+    let allBtns = document.querySelectorAll('#choices button');
+    allBtns.forEach(b => b.disabled = true);
+
+    if (answer === correctAnswer) {
+      correctCountVal++;
+      score += 10 + combo * 2;
+      combo++;
+      
+      button.classList.add('animate-correct');
+      feedback.innerHTML = '<span class="text-emerald-600">✨ 정답입니다! (+콤보)</span>';
+
+      if (correctCountVal % 3 === 0 && correctCountVal < 20) {
+        time += 5;
+        if (time > maxTime) maxTime = time;
+        feedback.innerHTML += ' <span class="text-sky-600">(⏱ 시간 +5초!)</span>';
+      }
+    } else {
+      wrongCountVal++;
+      combo = 0;
+      time -= 10;
+      if (time < 0) time = 0;
+
+      button.classList.add('animate-wrong');
+      qBox.classList.add('animate-shake');
+      feedback.innerHTML = `<span class="text-rose-600">💦 오답! 정답: ${correctAnswer} (-10초)</span>`;
+
+      setTimeout(() => {
+        qBox.classList.remove('animate-shake');
+      }, 300);
+    }
+
+    updateUI();
+    updateTimeBar();
+
+    if (time <= 0) {
+      setTimeout(endGame, 400);
+      return;
+    }
+
+    setTimeout(() => {
+      feedback.textContent = '';
+      nextQuestion();
+    }, 600);
+  }
+
+  function endGame() {
+    if (timer) clearInterval(timer);
+    document.getElementById('playScreen').classList.add('hidden');
+    document.getElementById('endScreen').classList.remove('hidden');
+
+    document.getElementById('finalScore').textContent = score + "점";
+    document.getElementById('totalSolved').textContent = totalSolved + "문제";
+    document.getElementById('finalCorrect').textContent = correctCountVal + "개";
+    document.getElementById('finalWrong').textContent = wrongCountVal + "개";
+
+    let accuracy = totalSolved > 0 ? Math.round((correctCountVal / totalSolved) * 100) : 0;
+    document.getElementById('accuracy').textContent = accuracy + "%";
+  }
+</script>
+
+</body>
+</html>

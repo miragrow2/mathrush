@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Math Rush - SpongeBob Edition</title>
+<style>
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: radial-gradient(circle at center, #111, #000);
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* 폭죽 파티클 컨테이너 */
+#fireworks-container {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 999;
+}
+
+@keyframes explode {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(0.2); opacity: 0; }
+}
+
+.particle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  animation: explode 0.6s ease-out forwards;
+}
+
+/* 캐릭터 리액션 팝업 스타일 */
+#character-popup {
+  position: fixed;
+  top: 15%;
+  left: 50%;
+  transform: translateX(-50%) scale(0);
+  padding: 15px 25px;
+  border-radius: 20px;
+  font-size: 20px;
+  font-weight: bold;
+  text-align: center;
+  z-index: 1000;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  pointer-events: none;
+}
+
+/* 뚱이 댄스 애니메이션 (정답) */
+@keyframes patrickDance {
+  0% { transform: translateX(-50%) translateY(0) rotate(0deg); }
+  25% { transform: translateX(-50%) translateY(-15px) rotate(-10deg); }
+  50% { transform: translateX(-50%) translateY(0) rotate(0deg); }
+  75% { transform: translateX(-50%) translateY(-15px) rotate(10deg); }
+  100% { transform: translateX(-50%) translateY(0) rotate(0deg); }
+}
+
+.patrick-style {
+  background: linear-gradient(135deg, #ff69b4, #ff1493);
+  color: white;
+  border: 4px solid #fff;
+  animation: patrickDance 0.4s infinite ease-in-out;
+}
+
+/* 징징이 놀림 애니메이션 (오답) */
+@keyframes squidwardMock {
+  0% { transform: translateX(-50%) rotate(0deg); }
+  20% { transform: translateX(-55%) rotate(-5deg); }
+  40% { transform: translateX(-45%) rotate(5deg); }
+  60% { transform: translateX(-55%) rotate(-5deg); }
+  80% { transform: translateX(-45%) rotate(5deg); }
+  100% { transform: translateX(-50%) rotate(0deg); }
+}
+
+.squidward-style {
+  background: linear-gradient(135deg, #20b2aa, #008b8b);
+  color: white;
+  border: 4px solid #fff;
+  animation: squidwardMock 0.4s ease-in-out;
+}
+
+.game {
+  width: 380px;
+  padding: 24px;
+  border-radius: 20px;
+  background: #1a1a1a;
+  box-shadow: 0 0 30px rgba(0,255,255,0.2);
+  box-sizing: border-box;
+  z-index: 1;
+}
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.timer { color: #00ffcc; }
+.score { color: #ffcc00; }
+
+.question {
+  text-align: center;
+  font-size: 40px;
+  margin: 30px 0;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+.choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+button.choice-btn {
+  padding: 18px;
+  font-size: 20px;
+  border: none;
+  border-radius: 12px;
+  background: #252525;
+  color: white;
+  cursor: pointer;
+  transition: 0.15s;
+  font-weight: bold;
+}
+
+button.choice-btn:hover:not(:disabled) {
+  background: #383838;
+  transform: translateY(-2px);
+}
+
+.correct { background: #00cc66 !important; color: black !important; }
+.wrong { background: #cc0033 !important; }
+
+.bottom {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 30px;
+}
+
+.combo { color: #ff6699; font-weight: bold; }
+#feedback { font-size: 22px; }
+
+.start-screen, .end-screen { text-align: center; }
+.start-screen h1 { font-size: 32px; margin-bottom: 10px; color: #00ffcc; }
+.start-screen p, .end-screen p { color: #aaa; font-size: 15px; margin-bottom: 25px; }
+.hidden { display: none !important; }
+
+.big-btn {
+  width: 100%;
+  padding: 16px;
+  font-size: 18px;
+  font-weight: bold;
+  border-radius: 12px;
+  background: #00ccff;
+  color: black;
+  border: none;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.big-btn:hover { background: #00b8e6; transform: scale(1.02); }
+
+.high-score-box {
+  background: #222;
+  padding: 10px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  font-size: 15px;
+  color: #ffcc00;
+}
+</style>
+</head>
+<body>
+
+<!-- 폭죽 및 캐릭터 팝업 컨테이너 -->
+<div id="fireworks-container"></div>
+<div id="character-popup"></div>
+
+<div class="game">
+
+  <!-- 시작 화면 -->
+  <div class="start-screen" id="startScreen">
+    <h1>⚡ Math Rush</h1>
+    <p>맞히면 뚱이가 춤추고, 틀리면 징징이가 놀림!<br>(정답: +1초 / 오답: -3초)</p>
+    <div class="high-score-box">🏆 역대 최고 점수: <span id="startHighScore">0</span>점</div>
+    <button class="big-btn" onclick="startGame()">게임 시작</button>
+  </div>
+
+  <!-- 플레이 화면 -->
+  <div class="play-screen hidden" id="playScreen">
+    <div class="top">
+      <div class="timer">⏱ <span id="time">30</span>초</div>
+      <div class="score">🏆 <span id="score">0</span></div>
+    </div>
+
+    <div class="question" id="question">1 + 1</div>
+
+    <div class="choices" id="choices"></div>
+
+    <div class="bottom">
+      <div class="combo">🔥 x<span id="combo">0</span></div>
+      <div id="feedback"></div>
+    </div>
+  </div>
+
+  <!-- 종료 화면 -->
+  <div class="end-screen hidden" id="endScreen">
+    <h2>🎉 게임 종료!</h2>
+    <p>이번 획득 점수: <span id="finalScore" style="color: #ffcc00; font-weight: bold; font-size: 20px;">0</span>점</p>
+    <div class="high-score-box" id="newRecordMsg" style="display:none;">✨ 신기록 달성! ✨</div>
+    <button class="big-btn" onclick="startGame()">다시하기</button>
+  </div>
+
+</div>
+
+<script>
+let score = 0;
+let time = 30;
+let combo = 0;
+let correctAnswer;
+let timer;
+let isPlaying = false;
+
+let highScore = localStorage.getItem('mathRushHighScore') || 0;
+document.getElementById('startHighScore').textContent = highScore;
+
+function startGame() {
+  score = 0;
+  time = 30;
+  combo = 0;
+  isPlaying = true;
+  
+  document.getElementById('score').textContent = score;
+  document.getElementById('time').textContent = time;
+  document.getElementById('combo').textContent = combo;
+  document.getElementById('newRecordMsg').style.display = 'none';
+
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('endScreen').classList.add('hidden');
+  document.getElementById('playScreen').classList.remove('hidden');
+
+  nextQuestion();
+  
+  clearInterval(timer);
+  timer = setInterval(() => {
+    if (!isPlaying) return;
+    time--;
+    document.getElementById('time').textContent = time;
+    if (time <= 0) {
+      endGame();
+    }
+  }, 1000);
+}
+
+function nextQuestion() {
+  if (!isPlaying) return;
+
+  let a = Math.floor(Math.random() * 10) + 1;
+  let b = Math.floor(Math.random() * 10) + 1;
+  let ops = ['+', '-', '*'];
+  let op = ops[Math.floor(Math.random() * ops.length)];
+
+  if (op === '+') correctAnswer = a + b;
+  if (op === '-') {
+    if (a < b) { let temp = a; a = b; b = temp; }
+    correctAnswer = a - b;
+  }
+  if (op === '*') correctAnswer = a * b;
+
+  document.getElementById('question').textContent = `${a} ${op} ${b}`;
+
+  let answers = [correctAnswer];
+  while (answers.length < 4) {
+    let offset = Math.floor(Math.random() * 5) + 1;
+    let wrong = Math.random() < 0.5 ? correctAnswer + offset : correctAnswer - offset;
+    if (wrong >= 0 && !answers.includes(wrong)) {
+      answers.push(wrong);
+    }
+  }
+
+  answers.sort(() => Math.random() - 0.5);
+
+  let choicesDiv = document.getElementById('choices');
+  choicesDiv.innerHTML = '';
+
+  answers.forEach(ans => {
+    let btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = ans;
+    btn.onclick = () => checkAnswer(btn, ans);
+    choicesDiv.appendChild(btn);
+  });
+}
+
+// 뚱이 & 징징이 팝업 함수
+function showCharacterReaction(isCorrect) {
+  const popup = document.getElementById('character-popup');
+  
+  if (isCorrect) {
+    popup.className = 'patrick-style';
+    popup.innerHTML = '⭐ 뚱이: "와아아! 댄스파티야! 🕺✨"';
+  } else {
+    popup.className = 'squidward-style';
+    popup.innerHTML = '🐙 징징이: "이것도 못 맞추냐... 한심하군 🙄"';
+  }
+  
+  // 팝업 띄우기
+  popup.style.transform = 'translateX(-50%) scale(1)';
+
+  // 0.4초 뒤에 팝업 숨기기
+  setTimeout(() => {
+    popup.style.transform = 'translateX(-50%) scale(0)';
+  }, 400);
+}
+
+function triggerFireworks() {
+  const container = document.getElementById('fireworks-container');
+  const colors = ['#ff0055', '#00ffcc', '#ffcc00', '#ff6600', '#00ccff', '#ff33ff'];
+  
+  const centerX = window.innerWidth / 2;
+  const centerY = window.innerHeight / 2;
+
+  for (let i = 0; i < 30; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'particle';
+    particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+    particle.style.left = centerX + 'px';
+    particle.style.top = centerY + 'px';
+
+    const angle = Math.random() * Math.PI * 2;
+    const distance = Math.random() * 160 + 50;
+    const dx = Math.cos(angle) * distance;
+    const dy = Math.sin(angle) * distance;
+
+    particle.style.setProperty('--dx', `${dx}px`);
+    particle.style.setProperty('--dy', `${dy}px`);
+
+    container.appendChild(particle);
+
+    setTimeout(() => {
+      particle.remove();
+    }, 600);
+  }
+}
+
+function checkAnswer(selectedButton, answer) {
+  if (!isPlaying) return;
+
+  let feedback = document.getElementById('feedback');
+  
+  let allButtons = document.querySelectorAll('#choices button');
+  allButtons.forEach(btn => btn.disabled = true);
+
+  if (answer === correctAnswer) {
+    score += 10 + combo * 2;
+    combo++;
+    time += 1;
+    selectedButton.classList.add('correct');
+    feedback.textContent = '✅';
+    
+    // 정답: 뚱이 소환 + 폭죽
+    showCharacterReaction(true);
+    triggerFireworks();
+  } else {
+    combo = 0;
+    time = Math.max(0, time - 3);
+    selectedButton.classList.add('wrong');
+    feedback.textContent = '❌';
+
+    // 오답: 징징이 소환
+    showCharacterReaction(false);
+  }
+
+  document.getElementById('score').textContent = score;
+  document.getElementById('combo').textContent = combo;
+  document.getElementById('time').textContent = time;
+
+  if (time <= 0) {
+    setTimeout(endGame, 300);
+    return;
+  }
+
+  setTimeout(() => {
+    if (isPlaying) {
+      nextQuestion();
+      feedback.textContent = '';
+    }
+  }, 300);
+}
+
+function endGame() {
+  isPlaying = false;
+  clearInterval(timer);
+  
+  document.getElementById('playScreen').classList.add('hidden');
+  document.getElementById('endScreen').classList.remove('hidden');
+  document.getElementById('finalScore').textContent = score;
+
+  if (score > highScore) {
+    highScore = score;
+    localStorage.setItem('mathRushHighScore', highScore);
+    document.getElementById('newRecordMsg').style.display = 'block';
+  }
+  document.getElementById('startHighScore').textContent = highScore;
+}
+</script>
+
+</body>
+</html>
