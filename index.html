@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>학생 웹사이트 작품 전시관</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:'맑은 고딕',sans-serif;
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+    background:#f5f7fa;
+}
+
+header{
+    background:#1e293b;
+    padding:12px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    position:sticky;
+    top:0;
+    z-index:1000;
+    box-shadow:0 2px 5px rgba(0,0,0,0.2);
+}
+
+header button{
+    border:none;
+    background:#3b82f6;
+    color:white;
+    padding:10px 15px;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:15px;
+    transition:0.2s;
+}
+
+header button:hover{
+    background:#2563eb;
+    transform:translateY(-2px);
+}
+
+#title{
+    background:white;
+    padding:10px;
+    text-align:center;
+    font-size:20px;
+    font-weight:bold;
+    border-bottom:1px solid #ddd;
+}
+
+iframe{
+    flex:1;
+    width:100%;
+    border:none;
+    background:white;
+}
+</style>
+
+</head>
+<body>
+
+<div id="title">
+학생 웹사이트 작품 전시관
+</div>
+
+<header>
+    <button onclick="loadPage('math_msw.html','문서원')">문서원</button>
+    <button onclick="loadPage('math_kjw.html','김진우')">김진우</button>
+    <button onclick="loadPage('math_pms.html','박민서')">박민서</button>
+    <button onclick="loadPage('이시원.html','이시원')">이시원</button>
+    <button onclick="loadPage('최대인.html','최대인')">최대인</button>
+    <button onclick="loadPage('박수빈.html','박수빈')">박수빈</button>
+    <button onclick="loadPage('손광덕.html','손광덕')">손광덕</button>
+    <button onclick="loadPage('이채은.html','이채은')">이채은</button>
+    <button onclick="loadPage('안대열.html','안대열')">안대열</button>
+    <button onclick="loadPage('성정민.html','성정민')">성정민</button>
+</header>
+
+<iframe id="viewer" src=""></iframe>
+
+<script>
+function loadPage(file, name){
+    document.getElementById("viewer").src = file;
+    document.getElementById("title").innerHTML =
+        "학생 웹사이트 작품 전시관 - " + name;
+}
+</script>
+
+</body>
+</html>
