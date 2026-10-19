@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⏳ Math Sand Avalanche</title>
+<style>
+  @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: 'Pretendard', sans-serif;
+    background: #181512;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .game {
+    width: 400px;
+    padding: 24px;
+    border-radius: 24px;
+    background: #26211d;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
+    border: 3px solid #3d352e;
+    position: relative;
+    text-align: center;
+  }
+
+  .top {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    font-weight: 700;
+    font-size: 16px;
+  }
+
+  .score-text { color: #fbbf24; }
+  .height-text { color: #f87171; }
+
+  /* 모래성 비주얼 게이지 바 영역 */
+  .sand-container {
+    background: #11100e;
+    border: 3px solid #443c35;
+    border-radius: 16px;
+    height: 180px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  /* 차오르는 모래 레이어 */
+  .sand-fill {
+    width: 100%;
+    height: 0%; /* 0%에서 시작해 시간이 갈수록 100%로 참 */
+    background: linear-gradient(to top, #d97706, #f59e0b);
+    transition: height 0.1s linear;
+    position: relative;
+  }
+
+  /* 모래 표면의 질감/물결 느낌 파동 애니메이션 */
+  .sand-fill::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.4);
+  }
+
+  .sand-warning {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 20px;
+    font-weight: 900;
+    color: #fee2e2;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
+    display: none;
+    animation: blink 0.4s infinite alternate;
+  }
+
+  @keyframes blink {
+    0% { opacity: 0.3; }
+    100% { opacity: 1; }
+  }
+
+  /* 문제 박스 */
+  .question-box {
+    background: #362f28;
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 16px;
+    border: 2px solid #4e443a;
+  }
+
+  .question {
+    font-size: 38px;
+    font-weight: 900;
+    color: #fef08a;
+    letter-spacing: 2px;
+  }
+
+  /* 입력 영역 */
+  .input-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+  }
+
+  input[type="number"] {
+    flex: 1;
+    padding: 14px;
+    font-size: 22px;
+    font-weight: bold;
+    text-align: center;
+    border: 3px solid #4e443a;
+    border-radius: 12px;
+    background: #11100e;
+    color: white;
+    outline: none;
+  }
+
+  input[type="number"]:focus {
+    border-color: #f59e0b;
+  }
+
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .submit-btn {
+    padding: 0 20px;
+    font-size: 16px;
+    font-weight: bold;
+    background: #d97706;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #b45309;
+  }
+
+  .submit-btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #b45309;
+  }
+
+  .bottom-info {
+    font-size: 15px;
+    color: #a8a29e;
+    font-weight: 600;
+  }
+
+  .start-screen, .end-screen {
+    text-align: center;
+    padding: 20px 0;
+  }
+
+  .start-screen h1, .end-screen h2 {
+    font-size: 28px;
+    margin-bottom: 10px;
+  }
+
+  .start-screen p, .end-screen p {
+    color: #a8a29e;
+    font-size: 14px;
+    margin-bottom: 24px;
+    line-height: 1.5;
+  }
+
+  .hidden { display: none; }
+
+  .big-btn {
+    width: 100%;
+    padding: 16px;
+    font-size: 18px;
+    font-weight: 800;
+    border-radius: 14px;
+    background: #f59e0b;
+    color: #181512;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 5px 0 #b45309;
+  }
+
+  .big-btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #b45309;
+  }
+</style>
+</head>
+<body>
+
+<div class="game">
+
+  <div class="start-screen" id="startScreen">
+    <h1>⏳ 모래성 무너지기</h1>
+    <p>가만히 있어도 아래에서 위로 <strong>모래가 끊임없이 차오릅니다!</strong><br>문제를 맞혀 모래를 퍼내고 살아남으세요.<br>틀리면 모래가 무더기로 쌓입니다!</p>
+    <button class="big-btn" onclick="startGame()">생존 시작</button>
+  </div>
+
+  <div class="play-screen hidden" id="playScreen">
+    <div class="top">
+      <div class="score-text">🏆 점수: <span id="score">0</span></div>
+      <div class="height-text">🚨 모래 높이: <span id="sandHeight">0</span>%</div>
+    </div>
+
+    <!-- 모래성 실시간 게이지 컨테이너 -->
+    <div class="sand-container" id="sandContainer">
+      <div class="sand-warning" id="sandWarning">⚠️ 위험! 곧 압사당합니다!</div>
+      <div class="sand-fill" id="sandFill"></div>
+    </div>
+
+    <div class="question-box">
+      <div class="question" id="question">2 + 4</div>
+    </div>
+
+    <div class="input-container">
+      <input type="number" id="answerInput" placeholder="정답 입력" autocomplete="off">
+      <button class="submit-btn" onclick="submitAnswer()">퍼내기</button>
+    </div>
+
+    <div class="bottom-info">
+      🔥 연속 성공 콤보: <span id="combo" style="color: #f472b6;">0</span>
+    </div>
+  </div>
+
+  <div class="end-screen hidden" id="endScreen">
+    <div style="font-size: 45px; margin-bottom: 10px;">💀</div>
+    <h2>모래에 파묻혔습니다!</h2>
+    <p>최종 생존 점수: <strong id="finalScore" style="color: #fbbf24; font-size: 26px;">0</strong>점</p>
+    <button class="big-btn" onclick="location.reload()">다시 도전하기</button>
+  </div>
+
+</div>
+
+<script>
+let score = 0;
+let sandLevel = 0; // 0% ~ 100% (100되면 게임오버)
+let combo = 0;
+let correctAnswer;
+let gameInterval;
+let isPlaying = false;
+
+const inputField = document.getElementById('answerInput');
+
+inputField.addEventListener('keypress', function(event) {
+  if (event.key === 'Enter') {
+    submitAnswer();
+  }
+});
+
+function startGame() {
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('playScreen').classList.remove('hidden');
+  isPlaying = true;
+  inputField.focus();
+  nextQuestion();
+
+  // 0.1초마다 모래가 꾸준히 차오름 (시간이 지날수록 조금씩 더 빨라짐)
+  gameInterval = setInterval(() => {
+    if (!isPlaying) return;
+
+    sandLevel += 0.55; // 모래 차오르는 속도
+    if (sandLevel >= 100) {
+      sandLevel = 100;
+      updateSandUI();
+      endGame();
+      return;
+    }
+    updateSandUI();
+  }, 100);
+}
+
+function updateSandUI() {
+  let sandFill = document.getElementById('sandFill');
+  let sandWarning = document.getElementById('sandWarning');
+  
+  sandFill.style.height = sandLevel + '%';
+  document.getElementById('sandHeight').textContent = Math.floor(sandLevel);
+
+  // 75% 이상 차오르면 위험 경고 표시
+  if (sandLevel >= 75) {
+    sandWarning.style.display = 'block';
+  } else {
+    sandWarning.style.display = 'none';
+  }
+}
+
+function nextQuestion() {
+  let a = Math.floor(Math.random() * 12) + 1;
+  let b = Math.floor(Math.random() * 12) + 1;
+  let ops = ['+', '-', '*'];
+  let op = ops[Math.floor(Math.random() * ops.length)];
+
+  if (op === '+') correctAnswer = a + b;
+  if (op === '-') {
+    if (a < b) [a, b] = [b, a];
+    correctAnswer = a - b;
+  }
+  if (op === '*') {
+    a = Math.floor(Math.random() * 9) + 1;
+    b = Math.floor(Math.random() * 9) + 1;
+    correctAnswer = a * b;
+  }
+
+  document.getElementById('question').textContent = `${a} ${op} ${b}`;
+  inputField.value = '';
+}
+
+function submitAnswer() {
+  if (!isPlaying) return;
+  let userVal = inputField.value.trim();
+  if (userVal === '') return;
+
+  let userAnswer = parseInt(userVal, 10);
+
+  if (userAnswer === correctAnswer) {
+    score += 10 + combo * 2;
+    combo++;
+    // 정답을 맞히면 모래가 대폭 내려감 (-15%)
+    sandLevel -= 15;
+    if (sandLevel < 0) sandLevel = 0;
+  } else {
+    combo = 0;
+    // 틀리면 패널티로 모래가 확 차오름 (+18%)
+    sandLevel += 18;
+    if (sandLevel >= 100) {
+      sandLevel = 100;
+      updateSandUI();
+      endGame();
+      return;
+    }
+  }
+
+  document.getElementById('score').textContent = score;
+  document.getElementById('combo').textContent = combo;
+  updateSandUI();
+  nextQuestion();
+}
+
+function endGame() {
+  isPlaying = false;
+  clearInterval(gameInterval);
+  document.getElementById('playScreen').classList.add('hidden');
+  document.getElementById('endScreen').classList.remove('hidden');
+  document.getElementById('finalScore').textContent = score;
+}
+</script>
+
+</body>
+</html>

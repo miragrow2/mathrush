@@ -1,0 +1,1734 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Riot Math Action : 루시안 · 발로란트 · 롤토체스</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@500;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * {
+    box-sizing: border-box;
+    user-select: none;
+    font-family: 'Noto Sans KR', 'Segoe UI', sans-serif;
+  }
+
+  body {
+    margin: 0;
+    background: radial-gradient(circle at 50% 20%, #1e3a8a 0%, #0f172a 60%, #020617 100%);
+    color: #1e293b;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+
+  .game {
+    width: 760px;
+    max-width: 98vw;
+    padding: 20px;
+    border-radius: 24px;
+    background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+    border: 4px solid #c89b3c;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55), 0 0 30px rgba(10, 200, 185, 0.35);
+    position: relative;
+  }
+
+  .game.fever-mode {
+    border-color: #ff9900;
+    box-shadow: 0 15px 55px rgba(255, 153, 0, 0.75), 0 0 35px rgba(0, 229, 255, 0.85);
+  }
+
+  /* 상단 상태 바 */
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .timer {
+    color: #0284c7;
+    font-weight: 700;
+    font-size: 18px;
+    background: #e0f2fe;
+    padding: 6px 16px;
+    border-radius: 999px;
+    border: 2px solid #7dd3fc;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* ★ 10초 이하일 때 훨씬 더 굵고 크게 보이도록 강조 ★ */
+  .timer.low-time {
+    color: #ffffff;
+    background: #dc2626;
+    border-color: #fca5a5;
+    font-weight: 900; /* 최대 굵기 */
+    font-size: 25px;  /* 글자 크기 확대 */
+    box-shadow: 0 0 20px rgba(220, 38, 38, 0.95);
+    animation: urgentPulse 0.45s infinite alternate ease-in-out;
+  }
+
+  @keyframes urgentPulse {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.13); }
+  }
+
+  .score {
+    color: #b45309;
+    background: #fef3c7;
+    border: 2px solid #fcd34d;
+    padding: 6px 16px;
+    border-radius: 999px;
+    font-size: 18px;
+    font-weight: 900;
+  }
+
+  /* 시간 게이지 */
+  .time-bar-wrap {
+    width: 100%;
+    height: 8px;
+    background: #cbd5e1;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+
+  .time-bar {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #10b981, #0ac8b9);
+    transition: width 0.3s linear;
+  }
+
+  .time-bar.low-time-bar {
+    background: linear-gradient(90deg, #ef4444, #f97316);
+  }
+
+  /* 문제 & 난이도 헤더 */
+  .problem-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #0f172a;
+    color: #ffffff;
+    padding: 10px 18px;
+    border-radius: 16px;
+    border: 2px solid #c89b3c;
+    margin-bottom: 10px;
+  }
+
+  .diff-badge {
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .diff-easy { background: #dcfce7; color: #15803d; }
+  .diff-normal { background: #fef9c3; color: #a16207; }
+  .diff-hard { background: #fae8ff; color: #7e22ce; }
+
+  .question-display {
+    font-size: 28px;
+    font-weight: 900;
+    color: #fde047;
+    letter-spacing: 1px;
+  }
+
+  .control-hint {
+    font-size: 12px;
+    color: #94a3b8;
+    font-weight: 700;
+  }
+
+  /* 액션 캔버스 (롤 & 발로란트 공용) */
+  #actionCanvas {
+    width: 100%;
+    height: 410px;
+    background: #091428;
+    border-radius: 16px;
+    border: 3px solid #334155;
+    display: block;
+    cursor: crosshair;
+  }
+
+  /* 루시안 스킬 HUD 바 */
+  .skill-hud {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .skill-slot {
+    background: #0f172a;
+    border: 2px solid #c89b3c;
+    color: #f8fafc;
+    border-radius: 10px;
+    padding: 6px 10px;
+    min-width: 105px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .skill-slot .key {
+    display: inline-block;
+    background: #c89b3c;
+    color: #0f172a;
+    font-weight: 900;
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-bottom: 2px;
+  }
+
+  .skill-slot .name {
+    display: block;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .skill-cd-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.82);
+    color: #38bdf8;
+    font-size: 16px;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ==========================================
+     롤토체스(TFT) 드래그 앤 드롭 보드 스타일
+  =========================================== */
+  .tft-board {
+    width: 100%;
+    height: 410px;
+    background: radial-gradient(circle at center, #2e1065 0%, #1e1b4b 100%);
+    border-radius: 16px;
+    border: 3px solid #8b5cf6;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    color: white;
+    position: relative;
+  }
+
+  .tft-guide {
+    text-align: center;
+    font-size: 14px;
+    font-weight: 800;
+    color: #ddd6fe;
+  }
+
+  .tft-equation-zone {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    margin: 15px 0;
+  }
+
+  .tft-drop-slot {
+    width: 105px;
+    height: 115px;
+    border-radius: 20px;
+    border: 3px dashed #a78bfa;
+    background: rgba(139, 92, 246, 0.15);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 800;
+    color: #c4b5fd;
+    transition: all 0.2s ease;
+    position: relative;
+  }
+
+  .tft-drop-slot.drag-over {
+    background: rgba(250, 204, 21, 0.28);
+    border-color: #facc15;
+    transform: scale(1.06);
+  }
+
+  .tft-drop-slot.filled {
+    border-style: solid;
+    border-color: #facc15;
+    background: linear-gradient(180deg, #4c1d95, #2e1065);
+    color: #ffffff;
+  }
+
+  .tft-op-symbol {
+    font-size: 40px;
+    font-weight: 900;
+    color: #facc15;
+  }
+
+  .tft-target-box {
+    width: 110px;
+    height: 115px;
+    border-radius: 20px;
+    background: linear-gradient(180deg, #f59e0b, #b45309);
+    border: 3px solid #fef08a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 25px rgba(245, 158, 11, 0.5);
+  }
+
+  .tft-target-box span {
+    font-size: 11px;
+    font-weight: 900;
+    color: #fef3c7;
+  }
+
+  .tft-target-box strong {
+    font-size: 36px;
+    font-weight: 900;
+    color: #ffffff;
+  }
+
+  /* 하단 롤토체스 상점/대기석 기물 카드 */
+  .tft-shop-bench {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    background: rgba(15, 23, 42, 0.75);
+    padding: 12px;
+    border-radius: 16px;
+    border: 2px solid #c89b3c;
+  }
+
+  .tft-unit-card {
+    background: linear-gradient(180deg, #3b0764 0%, #1e1b4b 100%);
+    border: 2px solid #a855f7;
+    border-radius: 14px;
+    padding: 12px 6px;
+    text-align: center;
+    cursor: grab;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    touch-action: none;
+  }
+
+  .tft-unit-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 16px rgba(168, 85, 247, 0.45);
+    border-color: #facc15;
+  }
+
+  .tft-unit-card:active {
+    cursor: grabbing;
+  }
+
+  .tft-unit-card.used {
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  .unit-icon {
+    font-size: 24px;
+    display: block;
+  }
+
+  .unit-num {
+    font-size: 26px;
+    font-weight: 900;
+    color: #fde047;
+  }
+
+  /* 하단 콤보 & 피드백 바 */
+  .bottom {
+    margin-top: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 40px;
+    position: relative;
+  }
+
+  .combo {
+    color: #0f172a;
+    font-size: 16px;
+    font-weight: 900;
+    padding: 6px 16px;
+    border-radius: 12px;
+    background: #e2e8f0;
+    border: 2px solid #cbd5e1;
+  }
+
+  .combo.high-combo {
+    color: #ffffff;
+    background: linear-gradient(90deg, #d97706, #dc2626);
+    border-color: #fcd34d;
+  }
+
+  /* ★ 콤보 달성 시 팝 애니메이션 ★ */
+  .combo-anim {
+    animation: comboPop 0.4s cubic-bezier(0.18, 1.8, 0.4, 1);
+  }
+
+  @keyframes comboPop {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.38) rotate(-3deg); }
+    75% { transform: scale(0.95) rotate(2deg); }
+    100% { transform: scale(1) rotate(0deg); }
+  }
+
+  .kill-banner-pop {
+    position: absolute;
+    left: 50%;
+    top: -26px;
+    transform: translateX(-50%);
+    padding: 6px 18px;
+    border-radius: 999px;
+    background: #0f172a;
+    border: 2px solid #facc15;
+    color: #fef08a;
+    font-size: 14px;
+    font-weight: 900;
+    pointer-events: none;
+    white-space: nowrap;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+    animation: bannerFloat 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    z-index: 40;
+  }
+
+  @keyframes bannerFloat {
+    0% { opacity: 0; transform: translate(-50%, 8px) scale(0.6); }
+    35% { opacity: 1; transform: translate(-50%, -16px) scale(1.12); }
+    70% { opacity: 1; transform: translate(-50%, -22px) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -36px) scale(0.9); }
+  }
+
+  /* 시작 / 종료 화면 */
+  .start-screen, .end-screen {
+    text-align: center;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  .mode-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin: 14px 0;
+  }
+
+  .mode-card {
+    background: #ffffff;
+    border: 2px solid #cbd5e1;
+    border-radius: 16px;
+    padding: 14px 10px;
+    cursor: pointer;
+    text-align: left;
+    transition: 0.2s;
+  }
+
+  .mode-card.selected {
+    background: #eff6ff;
+    border-color: #2563eb;
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.22);
+  }
+
+  .mode-card h3 {
+    margin: 6px 0 4px 0;
+    font-size: 15px;
+    color: #0f172a;
+    font-weight: 900;
+  }
+
+  .mode-card p {
+    margin: 0;
+    font-size: 12px;
+    color: #475569;
+    line-height: 1.4;
+    font-weight: 600;
+  }
+
+  .diff-selector {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .diff-btn {
+    padding: 9px 6px;
+    font-size: 13px;
+    font-weight: 800;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #475569;
+    border: 2px solid #cbd5e1;
+    cursor: pointer;
+  }
+
+  .diff-btn.selected {
+    background: #fef3c7;
+    color: #b45309;
+    border-color: #f59e0b;
+  }
+
+  .big-btn {
+    width: 100%;
+    padding: 15px;
+    font-size: 18px;
+    font-weight: 900;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #0ac8b9 0%, #0284c7 100%);
+    color: #ffffff;
+    border: 2px solid #c89b3c;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(2, 132, 199, 0.35);
+  }
+
+  .stats-box {
+    background: #ffffff;
+    border: 2px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 16px;
+    margin: 16px 0;
+    display: flex;
+    justify-content: space-around;
+  }
+</style>
+</head>
+<body>
+
+<div class="game" id="gameContainer">
+
+  <!-- ==========================================
+       1. 시작 화면
+  =========================================== -->
+  <div class="start-screen" id="startScreen">
+    <h1 style="margin: 0; font-size: 28px; color: #0f172a; font-weight: 900;">
+      ⚔️ RIOT MATH ACTION
+    </h1>
+    <p style="color: #64748b; font-size: 13px; margin: 4px 0 12px 0; font-weight: 700;">
+      직접 캐릭터를 움직이고, 스킬을 쓰고, 조준 사격하고, 기물을 드래그해 문제를 푸세요!
+    </p>
+
+    <div class="mode-cards">
+      <div class="mode-card selected" onclick="selectGameMode('lol', this)">
+        <div style="font-size: 28px;">🔫</div>
+        <h3>롤 : 루시안 포탑 철거</h3>
+        <p>
+          • <b>우클릭</b>: 이동<br>
+          • <b>좌클릭</b>: 쌍권총 평타<br>
+          • <b>Q</b>: 꿰뚫는 빛 (레이저)<br>
+          • <b>W</b>: 타는 불길 (폭발탄)<br>
+          • <b>E</b>: 끈질긴 추격 (돌진)<br>
+          • <b>R</b>: 빛의 심판 (궁극기 연사)
+        </p>
+      </div>
+
+      <div class="mode-card" onclick="selectGameMode('val', this)">
+        <div style="font-size: 28px;">🎯</div>
+        <h3>발로란트 : 사격장 모드</h3>
+        <p>
+          • <b>W / S</b>: 전진 / 후진<br>
+          • <b>A</b>: 오른쪽 이동<br>
+          • <b>D</b>: 왼쪽 이동<br>
+          • <b>우클릭</b>: 정조준 (ADS 줌)<br>
+          • <b>좌클릭</b>: 격발 (정답 타겟 사격)
+        </p>
+      </div>
+
+      <div class="mode-card" onclick="selectGameMode('tft', this)">
+        <div style="font-size: 28px;">🐧</div>
+        <h3>롤토체스 : 드래그 연산</h3>
+        <p>
+          • 하단 상점의 숫자 기물을 <b>마우스로 직접 드래그</b>하여 상단 수식 슬롯 2곳에 놓으세요!<br>
+          • 두 숫자의 연산 결과가 목표 숫자와 같으면 성공!
+        </p>
+      </div>
+    </div>
+
+    <div class="diff-selector">
+      <button type="button" class="diff-btn selected" onclick="selectDifficulty('auto', this)">🔥 자동 난이도 조절</button>
+      <button type="button" class="diff-btn" onclick="selectDifficulty('easy', this)">🟢 Lv.1 쉬움 위주</button>
+      <button type="button" class="diff-btn" onclick="selectDifficulty('normal', this)">🟡 Lv.2 보통 위주</button>
+      <button type="button" class="diff-btn" onclick="selectDifficulty('hard', this)">🔴 Lv.3 어려움 위주</button>
+    </div>
+
+    <button class="big-btn" onclick="startGame()">⚡ 게임 시작하기</button>
+  </div>
+
+  <!-- ==========================================
+       2. 플레이 화면
+  =========================================== -->
+  <div class="play-screen hidden" id="playScreen">
+    <div class="top-bar">
+      <div class="timer" id="timerBox">⏱ <span id="time">60</span>초</div>
+      <span id="diffBadge" class="diff-badge diff-easy">🟢 Lv.1 쉬움 (+10점)</span>
+      <div class="score">🏆 <span id="score">0</span> 점</div>
+    </div>
+
+    <div class="time-bar-wrap">
+      <div class="time-bar" id="timeBar"></div>
+    </div>
+
+    <!-- 문제 배너 -->
+    <div class="problem-banner">
+      <div>
+        <div id="modeTitleText" style="font-size: 12px; color: #38bdf8; font-weight: 900;">리그 오브 레전드 : 루시안 모드</div>
+        <div id="controlHintText" class="control-hint">우클릭: 이동 | 좌클릭: 평타 | Q·W·E·R: 루시안 스킬로 정답 포탑을 철거하세요!</div>
+      </div>
+      <div class="question-display" id="questionText">1 + 1 = ?</div>
+    </div>
+
+    <!-- 롤 & 발로란트 실시간 액션 캔버스 -->
+    <canvas id="actionCanvas" width="712" height="410"></canvas>
+
+    <!-- 롤 루시안 전용 스킬 쿨타임 바 -->
+    <div class="skill-hud" id="lolSkillHud">
+      <div class="skill-slot">
+        <span class="key">좌클릭</span>
+        <span class="name">빛의 사수(평타)</span>
+      </div>
+      <div class="skill-slot">
+        <span class="key">Q</span>
+        <span class="name">꿰뚫는 빛</span>
+        <div id="cd-Q" class="skill-cd-overlay hidden">0.0</div>
+      </div>
+      <div class="skill-slot">
+        <span class="key">W</span>
+        <span class="name">타는 불길</span>
+        <div id="cd-W" class="skill-cd-overlay hidden">0.0</div>
+      </div>
+      <div class="skill-slot">
+        <span class="key">E</span>
+        <span class="name">끈질긴 추격</span>
+        <div id="cd-E" class="skill-cd-overlay hidden">0.0</div>
+      </div>
+      <div class="skill-slot">
+        <span class="key">R</span>
+        <span class="name">빛의 심판(궁)</span>
+        <div id="cd-R" class="skill-cd-overlay hidden">0.0</div>
+      </div>
+    </div>
+
+    <!-- 롤토체스(TFT) 전용 드래그 앤 드롭 보드 -->
+    <div class="tft-board hidden" id="tftBoard">
+      <div class="tft-guide">
+        👇 아래 상점의 숫자 카드를 <b>마우스로 드래그</b>해 빈 슬롯에 놓아 목표 숫자를 완성하세요! (슬롯 클릭 시 비우기)
+      </div>
+
+      <div class="tft-equation-zone">
+        <div class="tft-drop-slot" id="tftSlot0" data-slot="0" onclick="clearTFTSlot(0)">
+          <span>드래그하여 배치</span>
+        </div>
+        <div class="tft-op-symbol" id="tftOpSymbol">+</div>
+        <div class="tft-drop-slot" id="tftSlot1" data-slot="1" onclick="clearTFTSlot(1)">
+          <span>드래그하여 배치</span>
+        </div>
+        <div class="tft-op-symbol">=</div>
+        <div class="tft-target-box">
+          <span>목표 정답</span>
+          <strong id="tftTargetValue">10</strong>
+        </div>
+      </div>
+
+      <div class="tft-shop-bench" id="tftShopBench"></div>
+    </div>
+
+    <!-- 하단 콤보 & 피드백 -->
+    <div class="bottom" id="bottomBar">
+      <div class="combo" id="comboBox">🔥 <span id="combo">0</span> COMBO</div>
+      <div id="feedback" style="font-size: 16px; font-weight: 900;"></div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       3. 종료 화면
+  =========================================== -->
+  <div class="end-screen hidden" id="endScreen">
+    <div style="font-size: 54px;">🏆</div>
+    <h2 style="margin: 4px 0; font-size: 28px; color: #0f172a; font-weight: 900;">게임 종료!</h2>
+    <div class="stats-box">
+      <div>
+        <span style="font-size:12px; color:#64748b; font-weight:700; display:block;">최종 점수</span>
+        <strong id="finalScore" style="font-size:24px; color:#d97706;">0</strong>
+      </div>
+      <div>
+        <span style="font-size:12px; color:#64748b; font-weight:700; display:block;">최대 콤보</span>
+        <strong id="maxComboText" style="font-size:24px; color:#dc2626;">0</strong>
+      </div>
+      <div>
+        <span style="font-size:12px; color:#64748b; font-weight:700; display:block;">해결한 문제</span>
+        <strong id="solvedCountText" style="font-size:24px; color:#0284c7;">0</strong>
+      </div>
+    </div>
+    <button class="big-btn" onclick="location.reload()">🔄 다시 플레이하기</button>
+  </div>
+
+</div>
+
+<script>
+/* =========================================================
+   전역 게임 상태
+========================================================= */
+const MAX_TIME = 60;
+let score = 0;
+let time = MAX_TIME;
+let combo = 0;
+let maxCombo = 0;
+let solvedCount = 0;
+let gameMode = 'lol'; // 'lol' | 'val' | 'tft'
+let selectedDiffMode = 'auto';
+let currentQuestionLevel = 1;
+let correctAnswer = 0;
+let timerInterval = null;
+let animFrameId = null;
+let isPlaying = false;
+
+const canvas = document.getElementById('actionCanvas');
+const ctx = canvas.getContext('2d');
+
+// 마우스 및 키보드 입력 상태
+let mouseX = 356;
+let mouseY = 205;
+const keysPressed = {};
+
+// 우클릭 시 브라우저 기본 메뉴가 뜨지 않도록 차단
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+window.addEventListener('contextmenu', e => {
+  if (isPlaying) e.preventDefault();
+});
+
+function selectGameMode(mode, cardElem) {
+  gameMode = mode;
+  document.querySelectorAll('.mode-card').forEach(el => el.classList.remove('selected'));
+  cardElem.classList.add('selected');
+}
+
+function selectDifficulty(diff, btnElem) {
+  selectedDiffMode = diff;
+  document.querySelectorAll('.diff-btn').forEach(el => el.classList.remove('selected'));
+  btnElem.classList.add('selected');
+}
+
+/* =========================================================
+   난이도 및 문제 생성 로직 (3단계)
+========================================================= */
+function decideQuestionDifficulty() {
+  const r = Math.random();
+  if (selectedDiffMode === 'easy') return r < 0.7 ? 1 : (r < 0.9 ? 2 : 3);
+  if (selectedDiffMode === 'normal') return r < 0.2 ? 1 : (r < 0.8 ? 2 : 3);
+  if (selectedDiffMode === 'hard') return r < 0.15 ? 1 : (r < 0.4 ? 2 : 3);
+
+  if (combo >= 5) return r < 0.15 ? 1 : (r < 0.45 ? 2 : 3);
+  if (combo >= 3) return r < 0.25 ? 1 : (r < 0.75 ? 2 : 3);
+  return r < 0.55 ? 1 : (r < 0.85 ? 2 : 3);
+}
+
+function updateDifficultyBadge() {
+  const badge = document.getElementById('diffBadge');
+  badge.className = 'diff-badge';
+  if (currentQuestionLevel === 1) {
+    badge.classList.add('diff-easy');
+    badge.textContent = '🟢 Lv.1 쉬움 (+10점)';
+  } else if (currentQuestionLevel === 2) {
+    badge.classList.add('diff-normal');
+    badge.textContent = '🟡 Lv.2 보통 (+20점)';
+  } else {
+    badge.classList.add('diff-hard');
+    badge.textContent = '🔴 Lv.3 어려움 (+30점 · ⏱+2초)';
+  }
+}
+
+function createMathProblem() {
+  currentQuestionLevel = decideQuestionDifficulty();
+  updateDifficultyBadge();
+
+  let qStr = '';
+  if (currentQuestionLevel === 1) {
+    let a = Math.floor(Math.random() * 9) + 1;
+    let b = Math.floor(Math.random() * 9) + 1;
+    let op = Math.random() < 0.5 ? '+' : '-';
+    if (op === '-' && a < b) [a, b] = [b, a];
+    correctAnswer = op === '+' ? a + b : a - b;
+    qStr = `${a} ${op} ${b} = ?`;
+  } else if (currentQuestionLevel === 2) {
+    let ops = ['+', '-', '×'];
+    let op = ops[Math.floor(Math.random() * ops.length)];
+    if (op === '×') {
+      let a = Math.floor(Math.random() * 8) + 2;
+      let b = Math.floor(Math.random() * 8) + 2;
+      correctAnswer = a * b;
+      qStr = `${a} × ${b} = ?`;
+    } else {
+      let a = Math.floor(Math.random() * 20) + 10;
+      let b = Math.floor(Math.random() * 14) + 3;
+      correctAnswer = op === '+' ? a + b : a - b;
+      qStr = `${a} ${op} ${b} = ?`;
+    }
+  } else {
+    if (Math.random() < 0.5) {
+      let a = Math.floor(Math.random() * 11) + 11;
+      let b = Math.floor(Math.random() * 6) + 3;
+      correctAnswer = a * b;
+      qStr = `${a} × ${b} = ?`;
+    } else {
+      let a = Math.floor(Math.random() * 15) + 10;
+      let b = Math.floor(Math.random() * 12) + 4;
+      let c = Math.floor(Math.random() * 9) + 2;
+      correctAnswer = a + b - c;
+      qStr = `${a} + ${b} - ${c} = ?`;
+    }
+  }
+
+  document.getElementById('questionText').textContent = qStr;
+
+  let choices = [correctAnswer];
+  while (choices.length < 4) {
+    let offset = Math.floor(Math.random() * 19) - 9;
+    if (offset === 0) offset = 2;
+    let wrong = correctAnswer + offset;
+    if (!choices.includes(wrong)) choices.push(wrong);
+  }
+  return choices.sort(() => Math.random() - 0.5);
+}
+
+/* =========================================================
+   모드 1 : 리그 오브 레전드 (루시안 실시간 액션)
+========================================================= */
+const lucian = {
+  x: 356,
+  y: 320,
+  tx: 356,
+  ty: 320,
+  speed: 4.2,
+  angle: -Math.PI / 2,
+  cullingTimer: 0, // R 궁극기 지속시간
+  cullingAngle: 0,
+  cullingShotTick: 0,
+  cd: { Q: 0, W: 0, E: 0, R: 0 },
+  maxCd: { Q: 3.0, W: 4.0, E: 3.5, R: 8.0 }
+};
+
+let lolTowers = [];
+let lolBullets = [];
+let lolLasers = [];
+let lolEffects = [];
+let moveMarkers = [];
+
+function spawnLoLTowers() {
+  const answers = createMathProblem();
+  const positions = [
+    { x: 115, y: 110, lane: 'TOP 포탑' },
+    { x: 275, y: 85,  lane: 'MID 좌측 포탑' },
+    { x: 435, y: 85,  lane: 'MID 우측 포탑' },
+    { x: 595, y: 110, lane: 'BOT 포탑' }
+  ];
+
+  lolTowers = positions.map((pos, idx) => ({
+    x: pos.x,
+    y: pos.y,
+    lane: pos.lane,
+    answer: answers[idx],
+    hp: 100,
+    maxHp: 100,
+    radius: 36,
+    hitFlash: 0
+  }));
+}
+
+// 루시안 스킬 발동
+function castLucianSkill(key) {
+  if (gameMode !== 'lol' || !isPlaying) return;
+  if (lucian.cd[key] > 0) return;
+
+  const angle = Math.atan2(mouseY - lucian.y, mouseX - lucian.x);
+  lucian.angle = angle;
+
+  // Q: 꿰뚫는 빛 (관통 레이저)
+  if (key === 'Q') {
+    lucian.cd.Q = lucian.maxCd.Q;
+    const beamLength = 520;
+    const endX = lucian.x + Math.cos(angle) * beamLength;
+    const endY = lucian.y + Math.sin(angle) * beamLength;
+
+    lolLasers.push({
+      x1: lucian.x, y1: lucian.y,
+      x2: endX, y2: endY,
+      life: 14
+    });
+
+    // 직선 경로 상의 포탑 타격 판정
+    lolTowers.forEach(t => {
+      if (pointToSegmentDistance(t.x, t.y, lucian.x, lucian.y, endX, endY) <= t.radius + 18) {
+        damageTower(t, 55, '⚡ Q 꿰뚫는 빛!');
+      }
+    });
+  }
+
+  // W: 타는 불길 (폭발하는 별 투사체)
+  else if (key === 'W') {
+    lucian.cd.W = lucian.maxCd.W;
+    lolBullets.push({
+      x: lucian.x,
+      y: lucian.y,
+      vx: Math.cos(angle) * 9,
+      vy: Math.sin(angle) * 9,
+      radius: 10,
+      dmg: 60,
+      color: '#facc15',
+      type: 'W'
+    });
+  }
+
+  // E: 끈질긴 추격 (마우스 방향 빠른 돌진 + 쿨감)
+  else if (key === 'E') {
+    lucian.cd.E = lucian.maxCd.E;
+    const dashDist = 115;
+    const startX = lucian.x;
+    const startY = lucian.y;
+    lucian.x = Math.max(30, Math.min(canvas.width - 30, lucian.x + Math.cos(angle) * dashDist));
+    lucian.y = Math.max(40, Math.min(canvas.height - 30, lucian.y + Math.sin(angle) * dashDist));
+    lucian.tx = lucian.x;
+    lucian.ty = lucian.y;
+
+    // 패시브 효과로 Q, W 쿨타임 1초 단축
+    lucian.cd.Q = Math.max(0, lucian.cd.Q - 1.0);
+    lucian.cd.W = Math.max(0, lucian.cd.W - 1.0);
+
+    lolEffects.push({ x: startX, y: startY, radius: 26, color: '#38bdf8', life: 12, text: '💨 E 돌진!' });
+  }
+
+  // R: 빛의 심판 (궁극기 - 1.8초간 고정 방향 고속 연사)
+  else if (key === 'R') {
+    lucian.cd.R = lucian.maxCd.R;
+    lucian.cullingTimer = 110; // 약 1.8초(60fps 기준)
+    lucian.cullingAngle = angle;
+    lolEffects.push({ x: lucian.x, y: lucian.y - 30, radius: 10, color: '#fde047', life: 30, text: '🔥 빛의 심판(R) 발동!' });
+  }
+}
+
+// 루시안 좌클릭 평타 (쌍권총 2연사)
+function fireLucianBasicAttack() {
+  const angle = Math.atan2(mouseY - lucian.y, mouseX - lucian.x);
+  lucian.angle = angle;
+
+  // 첫 번째 탄환 + 두 번째 패시브(빛의 사수) 탄환
+  [-7, 7].forEach((offset, i) => {
+    const perpX = -Math.sin(angle) * offset;
+    const perpY = Math.cos(angle) * offset;
+    lolBullets.push({
+      x: lucian.x + perpX - Math.cos(angle) * (i * 14),
+      y: lucian.y + perpY - Math.sin(angle) * (i * 14),
+      vx: Math.cos(angle) * 12,
+      vy: Math.sin(angle) * 12,
+      radius: 5,
+      dmg: 28,
+      color: '#38bdf8',
+      type: 'AA'
+    });
+  });
+}
+
+function damageTower(tower, amount, hitLabel) {
+  tower.hp -= amount;
+  tower.hitFlash = 6;
+  lolEffects.push({ x: tower.x, y: tower.y - 25, radius: 18, color: '#38bdf8', life: 15, text: hitLabel || `-${amount}` });
+
+  if (tower.hp <= 0) {
+    tower.hp = 0;
+    if (tower.answer === correctAnswer) {
+      handleSuccess('🏰 정답 포탑 파괴 완료!');
+      spawnLoLTowers();
+    } else {
+      handleFailure('💀 오답 포탑을 파괴했습니다!');
+      spawnLoLTowers();
+    }
+  }
+}
+
+function pointToSegmentDistance(px, py, x1, y1, x2, y2) {
+  const A = px - x1, B = py - y1, C = x2 - x1, D = y2 - y1;
+  const dot = A * C + B * D;
+  const lenSq = C * C + D * D;
+  let param = lenSq !== 0 ? dot / lenSq : -1;
+  let xx, yy;
+  if (param < 0) { xx = x1; yy = y1; }
+  else if (param > 1) { xx = x2; yy = y2; }
+  else { xx = x1 + param * C; yy = y1 + param * D; }
+  return Math.hypot(px - xx, py - yy);
+}
+
+/* =========================================================
+   모드 2 : 발로란트 (W/A/S/D 이동 + 우클릭 조준 + 좌클릭 격발)
+========================================================= */
+const valPlayer = {
+  camX: 0,     // 좌우 이동 위치 (A: 오른쪽(+), D: 왼쪽(-))
+  camZ: 0,     // 전후 이동 위치 (W: 전진(+), S: 후진(-))
+  isADS: false, // 우클릭 정조준 여부
+  recoilY: 0,
+  muzzleFlash: 0
+};
+
+let valTargets = [];
+let valBulletMarks = [];
+
+function spawnValorantTargets() {
+  const answers = createMathProblem();
+  const baseXPositions = [-210, -70, 70, 210];
+
+  valTargets = baseXPositions.map((bx, idx) => ({
+    worldX: bx,
+    worldY: -10 + (idx % 2 === 0 ? -12 : 12),
+    answer: answers[idx],
+    baseRadius: 38
+  }));
+}
+
+function fireValorantShot() {
+  valPlayer.muzzleFlash = 5;
+  const aimY = mouseY - valPlayer.recoilY;
+  valPlayer.recoilY = Math.min(20, valPlayer.recoilY + (valPlayer.isADS ? 3 : 6));
+
+  valBulletMarks.push({ x: mouseX, y: aimY, life: 18 });
+
+  // 화면에 투영된 표적과 조준선 충돌 확인
+  const scale = getValorantProjectionScale();
+  for (let i = 0; i < valTargets.length; i++) {
+    const t = valTargets[i];
+    const screenX = canvas.width / 2 + (t.worldX - valPlayer.camX) * scale;
+    const screenY = canvas.height / 2 + t.worldY * scale;
+    const r = t.baseRadius * scale;
+
+    if (Math.hypot(mouseX - screenX, aimY - screenY) <= r) {
+      if (t.answer === correctAnswer) {
+        handleSuccess('🎯 HEADSHOT! 정답 타겟 격파!');
+      } else {
+        handleFailure('💥 오답 타겟 사격!');
+      }
+      spawnValorantTargets();
+      break;
+    }
+  }
+}
+
+function getValorantProjectionScale() {
+  // W(전진)할수록 커지고, 우클릭(ADS) 시 1.38배 추가 줌인
+  const depthFactor = 1 + (valPlayer.camZ / 260);
+  const adsFactor = valPlayer.isADS ? 1.38 : 1.0;
+  return Math.max(0.65, depthFactor * adsFactor);
+}
+
+/* =========================================================
+   모드 3 : 롤토체스(TFT) 마우스 드래그 앤 드롭 수식 합성
+========================================================= */
+let tftState = {
+  target: 0,
+  op: '+',
+  slots: [null, null], // [{ unitIdx, num }, { unitIdx, num }]
+  bench: []
+};
+
+let draggedUnit = null; // { unitIdx, num }
+
+function spawnTFTRound() {
+  currentQuestionLevel = decideQuestionDifficulty();
+  updateDifficultyBadge();
+
+  tftState.slots = [null, null];
+  let a, b;
+
+  if (currentQuestionLevel === 1) {
+    tftState.op = '+';
+    a = Math.floor(Math.random() * 8) + 1;
+    b = Math.floor(Math.random() * 8) + 1;
+    tftState.target = a + b;
+  } else if (currentQuestionLevel === 2) {
+    tftState.op = Math.random() < 0.5 ? '-' : '×';
+    if (tftState.op === '×') {
+      a = Math.floor(Math.random() * 7) + 2;
+      b = Math.floor(Math.random() * 7) + 2;
+      tftState.target = a * b;
+    } else {
+      b = Math.floor(Math.random() * 9) + 2;
+      tftState.target = Math.floor(Math.random() * 12) + 3;
+      a = tftState.target + b;
+    }
+  } else {
+    tftState.op = Math.random() < 0.5 ? '+' : '×';
+    if (tftState.op === '+') {
+      a = Math.floor(Math.random() * 18) + 11;
+      b = Math.floor(Math.random() * 15) + 8;
+      tftState.target = a + b;
+    } else {
+      a = Math.floor(Math.random() * 9) + 4;
+      b = Math.floor(Math.random() * 7) + 3;
+      tftState.target = a * b;
+    }
+  }
+
+  document.getElementById('questionText').textContent = `? ${tftState.op} ? = ${tftState.target}`;
+  document.getElementById('tftOpSymbol').textContent = tftState.op;
+  document.getElementById('tftTargetValue').textContent = tftState.target;
+
+  // 상점 기물 5개 생성 (정답 a, b 포함)
+  let nums = [a, b];
+  while (nums.length < 5) {
+    let r = Math.floor(Math.random() * 19) + 1;
+    if (!nums.includes(r)) nums.push(r);
+  }
+  nums.sort(() => Math.random() - 0.5);
+  tftState.bench = nums;
+
+  renderTFTBoardUI();
+}
+
+function renderTFTBoardUI() {
+  const icons = ['🐧', '🐉', '⚔️', '🧙', '🛡️'];
+  const benchDiv = document.getElementById('tftShopBench');
+  benchDiv.innerHTML = '';
+
+  // 슬롯 UI 업데이트
+  [0, 1].forEach(slotIdx => {
+    const slotEl = document.getElementById(`tftSlot${slotIdx}`);
+    const slotData = tftState.slots[slotIdx];
+    if (slotData) {
+      slotEl.classList.add('filled');
+      slotEl.innerHTML = `
+        <span style="font-size:24px;">⭐</span>
+        <strong style="font-size:32px; color:#fde047;">${slotData.num}</strong>
+      `;
+    } else {
+      slotEl.classList.remove('filled');
+      slotEl.innerHTML = `<span>드래그하여 배치</span>`;
+    }
+  });
+
+  // 벤치 카드 렌더링 (HTML5 Drag & Drop 지원)
+  tftState.bench.forEach((num, idx) => {
+    const isUsed = tftState.slots.some(s => s && s.unitIdx === idx);
+    const card = document.createElement('div');
+    card.className = `tft-unit-card ${isUsed ? 'used' : ''}`;
+    card.draggable = !isUsed;
+    card.innerHTML = `
+      <span class="unit-icon">${icons[idx % icons.length]}</span>
+      <span class="unit-num">${num}</span>
+      <div style="font-size:10px; color:#c4b5fd; font-weight:700;">드래그 기물</div>
+    `;
+
+    card.addEventListener('dragstart', (e) => {
+      draggedUnit = { unitIdx: idx, num };
+      e.dataTransfer.setData('text/plain', idx);
+    });
+
+    // 클릭으로도 빈 슬롯에 빠르게 넣을 수 있도록 편의 지원
+    card.addEventListener('click', () => {
+      if (isUsed) return;
+      if (!tftState.slots[0]) placeUnitInTFTSlot(0, { unitIdx: idx, num });
+      else if (!tftState.slots[1]) placeUnitInTFTSlot(1, { unitIdx: idx, num });
+    });
+
+    benchDiv.appendChild(card);
+  });
+}
+
+// 슬롯 드래그 이벤트 등록
+[0, 1].forEach(slotIdx => {
+  const slotEl = document.getElementById(`tftSlot${slotIdx}`);
+  slotEl.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    slotEl.classList.add('drag-over');
+  });
+  slotEl.addEventListener('dragleave', () => {
+    slotEl.classList.remove('drag-over');
+  });
+  slotEl.addEventListener('drop', (e) => {
+    e.preventDefault();
+    slotEl.classList.remove('drag-over');
+    if (draggedUnit) {
+      placeUnitInTFTSlot(slotIdx, draggedUnit);
+      draggedUnit = null;
+    }
+  });
+});
+
+function clearTFTSlot(slotIdx) {
+  tftState.slots[slotIdx] = null;
+  renderTFTBoardUI();
+}
+
+function placeUnitInTFTSlot(slotIdx, unitObj) {
+  // 다른 슬롯에 이미 같은 기물이 있으면 비우기
+  if (tftState.slots[1 - slotIdx] && tftState.slots[1 - slotIdx].unitIdx === unitObj.unitIdx) {
+    tftState.slots[1 - slotIdx] = null;
+  }
+  tftState.slots[slotIdx] = unitObj;
+  renderTFTBoardUI();
+
+  // 두 슬롯이 모두 채워지면 즉시 연산 검증
+  if (tftState.slots[0] && tftState.slots[1]) {
+    const v1 = tftState.slots[0].num;
+    const v2 = tftState.slots[1].num;
+    let res = 0;
+    if (tftState.op === '+') res = v1 + v2;
+    else if (tftState.op === '-') res = v1 - v2;
+    else if (tftState.op === '×') res = v1 * v2;
+
+    setTimeout(() => {
+      if (res === tftState.target) {
+        handleSuccess('⭐⭐⭐ 3성 수식 합성 성공!');
+      } else {
+        handleFailure(`❌ 합성 실패! (${v1} ${tftState.op} ${v2} = ${res})`);
+      }
+      spawnTFTRound();
+    }, 220);
+  }
+}
+
+/* =========================================================
+   캔버스 입력 이벤트 (롤 & 발로란트)
+========================================================= */
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+  mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+});
+
+canvas.addEventListener('mousedown', (e) => {
+  if (!isPlaying) return;
+
+  if (gameMode === 'lol') {
+    // 우클릭(button === 2): 루시안 이동 명령
+    if (e.button === 2) {
+      lucian.tx = Math.max(30, Math.min(canvas.width - 30, mouseX));
+      lucian.ty = Math.max(50, Math.min(canvas.height - 30, mouseY));
+      moveMarkers.push({ x: lucian.tx, y: lucian.ty, radius: 18, life: 16 });
+    }
+    // 좌클릭(button === 0): 루시안 기본 공격(평타)
+    else if (e.button === 0) {
+      fireLucianBasicAttack();
+    }
+  } else if (gameMode === 'val') {
+    // 우클릭(button === 2): 정조준(ADS) 전환
+    if (e.button === 2) {
+      valPlayer.isADS = !valPlayer.isADS;
+    }
+    // 좌클릭(button === 0): 사격 발사
+    else if (e.button === 0) {
+      fireValorantShot();
+    }
+  }
+});
+
+window.addEventListener('keydown', (e) => {
+  const k = e.key.toLowerCase();
+  keysPressed[k] = true;
+
+  if (!isPlaying) return;
+
+  if (gameMode === 'lol') {
+    if (k === 'q') castLucianSkill('Q');
+    if (k === 'w') castLucianSkill('W');
+    if (k === 'e') castLucianSkill('E');
+    if (k === 'r') castLucianSkill('R');
+  }
+});
+
+window.addEventListener('keyup', (e) => {
+  keysPressed[e.key.toLowerCase()] = false;
+});
+
+/* =========================================================
+   실시간 렌더링 & 물리 업데이트 루프 (60 FPS)
+========================================================= */
+function gameLoop() {
+  if (!isPlaying) return;
+
+  if (gameMode === 'lol') {
+    updateLoL();
+    renderLoL();
+  } else if (gameMode === 'val') {
+    updateValorant();
+    renderValorant();
+  }
+
+  animFrameId = requestAnimationFrame(gameLoop);
+}
+
+function updateLoL() {
+  // 1) 스킬 쿨타임 감소 (60FPS 기준 프레임당 1/60초)
+  ['Q', 'W', 'E', 'R'].forEach(k => {
+    const overlay = document.getElementById(`cd-${k}`);
+    if (lucian.cd[k] > 0) {
+      lucian.cd[k] = Math.max(0, lucian.cd[k] - 1 / 60);
+      overlay.classList.remove('hidden');
+      overlay.textContent = lucian.cd[k].toFixed(1);
+    } else {
+      overlay.classList.add('hidden');
+    }
+  });
+
+  // 2) 우클릭 목표 지점으로 루시안 이동
+  const dist = Math.hypot(lucian.tx - lucian.x, lucian.ty - lucian.y);
+  if (dist > 4) {
+    lucian.x += ((lucian.tx - lucian.x) / dist) * lucian.speed;
+    lucian.y += ((lucian.ty - lucian.y) / dist) * lucian.speed;
+  }
+
+  // 3) R 궁극기(빛의 심판) 지속 연사
+  if (lucian.cullingTimer > 0) {
+    lucian.cullingTimer--;
+    lucian.angle = lucian.cullingAngle;
+    if (lucian.cullingTimer % 5 === 0) {
+      const side = (lucian.cullingTimer % 10 === 0) ? -9 : 9;
+      const perpX = -Math.sin(lucian.cullingAngle) * side;
+      const perpY = Math.cos(lucian.cullingAngle) * side;
+      lolBullets.push({
+        x: lucian.x + perpX,
+        y: lucian.y + perpY,
+        vx: Math.cos(lucian.cullingAngle) * 14,
+        vy: Math.sin(lucian.cullingAngle) * 14,
+        radius: 6,
+        dmg: 18,
+        color: '#fde047',
+        type: 'R'
+      });
+    }
+  } else {
+    lucian.angle = Math.atan2(mouseY - lucian.y, mouseX - lucian.x);
+  }
+
+  // 4) 투사체 이동 및 포탑 충돌 체크
+  for (let i = lolBullets.length - 1; i >= 0; i--) {
+    const b = lolBullets[i];
+    b.x += b.vx;
+    b.y += b.vy;
+
+    if (b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) {
+      lolBullets.splice(i, 1);
+      continue;
+    }
+
+    for (let j = 0; j < lolTowers.length; j++) {
+      const t = lolTowers[j];
+      if (Math.hypot(b.x - t.x, b.y - t.y) <= t.radius + b.radius) {
+        const label = b.type === 'W' ? '💥 W 폭발!' : (b.type === 'R' ? '✨ R 심판!' : null);
+        damageTower(t, b.dmg, label);
+        lolBullets.splice(i, 1);
+        break;
+      }
+    }
+  }
+}
+
+function renderLoL() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // 협곡 바닥 그리드 배경
+  ctx.fillStyle = '#0b192c';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = 'rgba(56, 189, 248, 0.08)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < canvas.width; x += 45) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+  }
+  for (let y = 0; y < canvas.height; y += 45) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+  }
+
+  // 우클릭 이동 마커 렌더링
+  for (let i = moveMarkers.length - 1; i >= 0; i--) {
+    const m = moveMarkers[i];
+    ctx.strokeStyle = `rgba(16, 185, 129, ${m.life / 16})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(m.x, m.y, m.radius * (m.life / 16), 0, Math.PI * 2);
+    ctx.stroke();
+    m.life--;
+    if (m.life <= 0) moveMarkers.splice(i, 1);
+  }
+
+  // 포탑 4개 렌더링
+  lolTowers.forEach(t => {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, t.radius, 0, Math.PI * 2);
+    ctx.fillStyle = t.hitFlash > 0 ? '#ffffff' : '#1e293b';
+    if (t.hitFlash > 0) t.hitFlash--;
+    ctx.fill();
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = '#c89b3c';
+    ctx.stroke();
+
+    // 포탑 정답 숫자
+    ctx.fillStyle = '#f8fafc';
+    ctx.font = '900 24px Noto Sans KR';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(t.answer, t.x, t.y);
+
+    // 포탑 체력바
+    const barW = 64, barH = 8;
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(t.x - barW / 2, t.y - t.radius - 16, barW, barH);
+    ctx.fillStyle = '#10b981';
+    ctx.fillRect(t.x - barW / 2, t.y - t.radius - 16, barW * (t.hp / t.maxHp), barH);
+    ctx.restore();
+  });
+
+  // Q 레이저 이펙트
+  for (let i = lolLasers.length - 1; i >= 0; i--) {
+    const l = lolLasers[i];
+    ctx.save();
+    ctx.strokeStyle = `rgba(250, 204, 21, ${l.life / 14})`;
+    ctx.lineWidth = 22 * (l.life / 14);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(l.x1, l.y1);
+    ctx.lineTo(l.x2, l.y2);
+    ctx.stroke();
+    ctx.restore();
+    l.life--;
+    if (l.life <= 0) lolLasers.splice(i, 1);
+  }
+
+  // 탄환 렌더링
+  lolBullets.forEach(b => {
+    ctx.fillStyle = b.color;
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // 루시안 캐릭터 렌더링
+  ctx.save();
+  ctx.translate(lucian.x, lucian.y);
+  ctx.rotate(lucian.angle);
+
+  // 쌍권총 총열
+  ctx.fillStyle = '#e2e8f0';
+  ctx.fillRect(10, -13, 18, 5);
+  ctx.fillRect(10, 8, 18, 5);
+
+  // 루시안 본체
+  ctx.beginPath();
+  ctx.arc(0, 0, 18, 0, Math.PI * 2);
+  ctx.fillStyle = lucian.cullingTimer > 0 ? '#facc15' : '#2563eb';
+  ctx.fill();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = '#ffffff';
+  ctx.stroke();
+  ctx.restore();
+
+  // 루시안 이름표
+  ctx.fillStyle = '#93c5fd';
+  ctx.font = '800 12px Noto Sans KR';
+  ctx.textAlign = 'center';
+  ctx.fillText('루시안 (나)', lucian.x, lucian.y + 32);
+
+  // 타격 텍스트 이펙트
+  for (let i = lolEffects.length - 1; i >= 0; i--) {
+    const ef = lolEffects[i];
+    ctx.fillStyle = ef.color;
+    ctx.font = '900 14px Noto Sans KR';
+    ctx.textAlign = 'center';
+    ctx.fillText(ef.text, ef.x, ef.y - (15 - ef.life));
+    ef.life--;
+    if (ef.life <= 0) lolEffects.splice(i, 1);
+  }
+}
+
+/* =========================================================
+   발로란트 업데이트 & 1인칭 렌더링 (W전진, S후진, A오른쪽, D왼쪽)
+========================================================= */
+function updateValorant() {
+  const moveSpeed = 4.0;
+  // W: 전진, S: 후진
+  if (keysPressed['w']) valPlayer.camZ = Math.min(130, valPlayer.camZ + moveSpeed);
+  if (keysPressed['s']) valPlayer.camZ = Math.max(-110, valPlayer.camZ - moveSpeed);
+
+  // ★ 사용자 요청 반영: A로 오른쪽 이동, D로 왼쪽 이동 ★
+  if (keysPressed['a']) valPlayer.camX = Math.min(180, valPlayer.camX + moveSpeed);
+  if (keysPressed['d']) valPlayer.camX = Math.max(-180, valPlayer.camX - moveSpeed);
+
+  // 반동 회복
+  if (valPlayer.recoilY > 0) {
+    valPlayer.recoilY = Math.max(0, valPlayer.recoilY - 0.6);
+  }
+}
+
+function renderValorant() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const scale = getValorantProjectionScale();
+  const horizonY = canvas.height / 2;
+
+  // 천장 & 사격장 바닥 원근 배경
+  ctx.fillStyle = '#1e293b';
+  ctx.fillRect(0, 0, canvas.width, horizonY);
+  ctx.fillStyle = '#334155';
+  ctx.fillRect(0, horizonY, canvas.width, horizonY);
+
+  // 사격장 거리 가이드 라인
+  ctx.strokeStyle = 'rgba(255, 70, 85, 0.25)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, horizonY);
+  ctx.lineTo(canvas.width, horizonY);
+  ctx.stroke();
+
+  // 타겟 봇 렌더링
+  valTargets.forEach(t => {
+    const screenX = canvas.width / 2 + (t.worldX - valPlayer.camX) * scale;
+    const screenY = horizonY + t.worldY * scale;
+    const r = t.baseRadius * scale;
+
+    // 표적 기둥
+    ctx.fillStyle = '#475569';
+    ctx.fillRect(screenX - 6 * scale, screenY, 12 * scale, 90 * scale);
+
+    // 외곽 과녁 원
+    ctx.beginPath();
+    ctx.arc(screenX, screenY, r, 0, Math.PI * 2);
+    ctx.fillStyle = '#0f172a';
+    ctx.fill();
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = '#ff4655';
+    ctx.stroke();
+
+    // 내부 헤드 원
+    ctx.beginPath();
+    ctx.arc(screenX, screenY, r * 0.65, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 정답 후보 숫자
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `900 ${Math.round(22 * scale)}px Noto Sans KR`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(t.answer, screenX, screenY);
+  });
+
+  // 탄흔 이펙트
+  for (let i = valBulletMarks.length - 1; i >= 0; i--) {
+    const bm = valBulletMarks[i];
+    ctx.fillStyle = `rgba(250, 204, 21, ${bm.life / 18})`;
+    ctx.beginPath();
+    ctx.arc(bm.x, bm.y, 5, 0, Math.PI * 2);
+    ctx.fill();
+    bm.life--;
+    if (bm.life <= 0) valBulletMarks.splice(i, 1);
+  }
+
+  // 우클릭 정조준(ADS) 스코프 오버레이
+  const aimY = mouseY - valPlayer.recoilY;
+  if (valPlayer.isADS) {
+    ctx.strokeStyle = 'rgba(0, 255, 204, 0.75)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(mouseX, aimY, 55, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // 발로란트 조준선(Crosshair)
+  ctx.strokeStyle = '#00ff99';
+  ctx.lineWidth = 2;
+  const gap = valPlayer.isADS ? 3 : 7;
+  const len = 10;
+  ctx.beginPath();
+  ctx.moveTo(mouseX - gap - len, aimY); ctx.lineTo(mouseX - gap, aimY);
+  ctx.moveTo(mouseX + gap, aimY); ctx.lineTo(mouseX + gap + len, aimY);
+  ctx.moveTo(mouseX, aimY - gap - len); ctx.lineTo(mouseX, aimY - gap);
+  ctx.moveTo(mouseX, aimY + gap); ctx.lineTo(mouseX, aimY + gap + len);
+  ctx.stroke();
+
+  // 우측 하단 1인칭 총기(밴달/팬텀 느낌) 실루엣
+  ctx.save();
+  const gunOffsetX = valPlayer.isADS ? canvas.width / 2 + 40 : canvas.width - 110;
+  const gunOffsetY = canvas.height - 20 + (valPlayer.muzzleFlash * 3);
+  if (valPlayer.muzzleFlash > 0) {
+    ctx.fillStyle = '#fde047';
+    ctx.beginPath();
+    ctx.arc(gunOffsetX - 35, gunOffsetY - 65, 22, 0, Math.PI * 2);
+    ctx.fill();
+    valPlayer.muzzleFlash--;
+  }
+  ctx.fillStyle = '#0f172a';
+  ctx.strokeStyle = '#ff4655';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(gunOffsetX - 30, gunOffsetY - 60);
+  ctx.lineTo(gunOffsetX + 90, gunOffsetY + 20);
+  ctx.lineTo(gunOffsetX + 30, gunOffsetY + 25);
+  ctx.lineTo(gunOffsetX - 50, gunOffsetY - 35);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+
+  // 현재 위치/조준 상태 HUD 표시
+  ctx.fillStyle = '#cbd5e1';
+  ctx.font = '800 12px Noto Sans KR';
+  ctx.textAlign = 'left';
+  ctx.fillText(`위치 X: ${Math.round(valPlayer.camX)} | 거리 Z: ${Math.round(valPlayer.camZ)} | 조준(우클릭): ${valPlayer.isADS ? 'ON (확대)' : 'OFF'}`, 14, canvas.height - 12);
+}
+
+/* =========================================================
+   공통 점수 / 콤보 애니메이션 / 10초 이하 타이머 강조
+========================================================= */
+function startGame() {
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('playScreen').classList.remove('hidden');
+
+  const lolHud = document.getElementById('lolSkillHud');
+  const tftBoard = document.getElementById('tftBoard');
+  const modeTitle = document.getElementById('modeTitleText');
+  const hint = document.getElementById('controlHintText');
+
+  if (gameMode === 'lol') {
+    modeTitle.textContent = '⚔️ 리그 오브 레전드 : 루시안 포탑 철거 모드';
+    hint.textContent = '우클릭: 이동 | 좌클릭: 평타 | Q(레이저) · W(폭발탄) · E(돌진) · R(빛의 심판 연사)';
+    canvas.classList.remove('hidden');
+    lolHud.classList.remove('hidden');
+    tftBoard.classList.add('hidden');
+    spawnLoLTowers();
+  } else if (gameMode === 'val') {
+    modeTitle.textContent = '🎯 발로란트 : 1인칭 사격장 모드';
+    hint.textContent = 'W: 전진 | S: 후진 | A: 오른쪽 | D: 왼쪽 | 우클릭: 정조준(ADS) | 좌클릭: 발사';
+    canvas.classList.remove('hidden');
+    lolHud.classList.add('hidden');
+    tftBoard.classList.add('hidden');
+    spawnValorantTargets();
+  } else {
+    modeTitle.textContent = '🐧 롤토체스(TFT) : 드래그 수식 합성 모드';
+    hint.textContent = '상점 숫자 카드를 마우스로 드래그해 빈 슬롯 2곳에 놓아 목표 숫자를 완성하세요!';
+    canvas.classList.add('hidden');
+    lolHud.classList.add('hidden');
+    tftBoard.classList.remove('hidden');
+    spawnTFTRound();
+  }
+
+  isPlaying = true;
+  updateTimerUI();
+
+  if (gameMode !== 'tft') {
+    animFrameId = requestAnimationFrame(gameLoop);
+  }
+
+  timerInterval = setInterval(() => {
+    time--;
+    updateTimerUI();
+    if (time <= 0) {
+      time = 0;
+      updateTimerUI();
+      endGame();
+    }
+  }, 1000);
+}
+
+function updateTimerUI() {
+  const timeSpan = document.getElementById('time');
+  const timerBox = document.getElementById('timerBox');
+  const timeBar = document.getElementById('timeBar');
+
+  timeSpan.textContent = time;
+  timeBar.style.width = Math.max(0, (time / MAX_TIME) * 100) + '%';
+
+  // ★ 10초 이하일 때 훨씬 더 굵고 크게 강조 ★
+  if (time <= 10) {
+    timerBox.classList.add('low-time');
+    timeBar.classList.add('low-time-bar');
+  } else {
+    timerBox.classList.remove('low-time');
+    timeBar.classList.remove('low-time-bar');
+  }
+}
+
+function handleSuccess(msg) {
+  combo++;
+  solvedCount++;
+  if (combo > maxCombo) maxCombo = combo;
+
+  const earned = currentQuestionLevel * 10 + combo * 3;
+  score += earned;
+
+  let bonusTime = 0;
+  if (currentQuestionLevel === 3) {
+    bonusTime = 2;
+    time = Math.min(MAX_TIME, time + bonusTime);
+    updateTimerUI();
+  }
+
+  const fb = document.getElementById('feedback');
+  fb.textContent = msg;
+  fb.style.color = '#059669';
+
+  document.getElementById('score').textContent = score;
+  document.getElementById('combo').textContent = combo;
+
+  triggerComboAnimation(earned, bonusTime);
+}
+
+function handleFailure(msg) {
+  combo = 0;
+  document.getElementById('combo').textContent = 0;
+  document.getElementById('comboBox').classList.remove('high-combo');
+  document.getElementById('gameContainer').classList.remove('fever-mode');
+
+  const fb = document.getElementById('feedback');
+  fb.textContent = msg;
+  fb.style.color = '#dc2626';
+}
+
+function triggerComboAnimation(earnedPoints, bonusTime) {
+  const comboBox = document.getElementById('comboBox');
+  const gameContainer = document.getElementById('gameContainer');
+  const bottomBar = document.getElementById('bottomBar');
+
+  comboBox.classList.remove('combo-anim');
+  void comboBox.offsetWidth;
+  comboBox.classList.add('combo-anim');
+
+  if (combo >= 5) {
+    comboBox.classList.add('high-combo');
+    gameContainer.classList.add('fever-mode');
+  }
+
+  const banner = document.createElement('div');
+  banner.className = 'kill-banner-pop';
+  const bonusStr = bonusTime > 0 ? ` (⏱+${bonusTime}초!)` : '';
+  banner.textContent = `🔥 ${combo} COMBO! +${earnedPoints}점${bonusStr}`;
+  bottomBar.appendChild(banner);
+  setTimeout(() => banner.remove(), 850);
+}
+
+function endGame() {
+  isPlaying = false;
+  clearInterval(timerInterval);
+  if (animFrameId) cancelAnimationFrame(animFrameId);
+
+  document.getElementById('playScreen').classList.add('hidden');
+  document.getElementById('endScreen').classList.remove('hidden');
+
+  document.getElementById('finalScore').textContent = score;
+  document.getElementById('maxComboText').textContent = maxCombo;
+  document.getElementById('solvedCountText').textContent = solvedCount;
+}
+</script>
+
+</body>
+</html>
